@@ -69,3 +69,6 @@ OriginalVBA/
 htmlcov/
 .pytest_cache/
 .tox/
+
+# Agents
+agents/
