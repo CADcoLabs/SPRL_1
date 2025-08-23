@@ -259,15 +259,15 @@ class PicketModule(BaseStairComponent):
         material: str,
     ) -> bool:
         """
-        Generate sample vertical pickets on FIRST TREAD ONLY.
+        Generate vertical pickets on ALL TREADS using the same pattern.
         
-        This creates a representative sample of what pickets would look like
-        across the entire stair by showing them on just the first tread.
+        This creates the exact same picket pattern on every tread throughout
+        the spiral staircase, positioned at each tread's specific height.
         
         Approach:
-        1. Calculate first tread geometry (30° span starting at 0°)
-        2. Apply IBC-compliant picket spacing algorithm
-        3. Create sample pickets at first tread height only
+        1. Calculate tread geometry and heights for all treads
+        2. Apply IBC-compliant picket spacing algorithm (same for all treads)
+        3. Create identical picket patterns on each tread at correct Z heights
         4. Extend lines upward to show handrail connection
         
         Args:
@@ -292,50 +292,23 @@ class PicketModule(BaseStairComponent):
             handrail_diameter = handrail_config.get("diameter", 1.5)
             handrail_height_above_tread = handrail_config.get("height_above_tread", 36.0)
             
-            print("FIRST TREAD SAMPLE PICKET IMPLEMENTATION")
-            print("Creating representative pickets on first tread only")
+            print("ALL TREADS PICKET IMPLEMENTATION")
+            print("Creating identical picket patterns on every tread")
             print(f"  Outside diameter: {outside_radius * 2:.1f}\" (radius: {outside_radius:.1f}\")")
             print(f"  Handrail diameter: {handrail_diameter}\"")
             print(f"  Picket diameter: {picket_diameter}\"")
             print("  IBC Requirement: Edge-to-edge spacing <= 4.0\"")
             
-            # Calculate first tread geometry
+            # Calculate tread geometry for all treads
             import math
             num_treads = math.ceil(overall_height / 9.5)  # Same formula as tread module
             tread_angle_degrees = total_rotation / (num_treads - 1)  # Angle per tread
-            first_tread_height = 9.0  # First tread height = riser height
+            riser_height = 9.0  # Standard riser height in inches
             
-            # Use actual first tread angle instead of fixed 30°
-            arc_start_angle = 0.0
-            arc_end_angle = tread_angle_degrees
-            # Note: handrail_radius is now calculated as picket_placement_radius
-            
-            print(f"\nFIRST TREAD GEOMETRY:")
+            print(f"\nTREAD GEOMETRY FOR ALL TREADS:")
             print(f"  Total treads: {num_treads}")
             print(f"  Tread angle: {tread_angle_degrees:.1f}°")
-            print(f"  Arc span: {arc_start_angle:.1f}° to {arc_end_angle:.1f}°")
-            print(f"  Height: Z={first_tread_height}\"")
-            
-            # Create construction arcs to show tread boundaries
-            arc_center = (0.0, 0.0, first_tread_height)
-            arc_start_rad = math.radians(arc_start_angle)
-            arc_end_rad = math.radians(arc_end_angle)
-            
-            # Outer tread edge arc
-            outer_arc = autocad_interface.create_arc(
-                arc_center, outside_radius, arc_start_rad, arc_end_rad
-            )
-            if outer_arc:
-                self.pickets_created.append(outer_arc)
-                print(f"  Created outer tread arc at Z={first_tread_height}\"")
-            
-            # Inner tread edge arc (for reference)
-            inner_arc = autocad_interface.create_arc(
-                arc_center, center_pole_radius, arc_start_rad, arc_end_rad
-            )
-            if inner_arc:
-                self.pickets_created.append(inner_arc)
-                print(f"  Created inner tread arc at Z={first_tread_height}\"")
+            print(f"  Riser height: {riser_height:.1f}\"")
             
             # Calculate picket placement radius to align with handrail position
             # Use same logic as handrail module: (outside_diameter - handrail_diameter) / 2
@@ -347,11 +320,15 @@ class PicketModule(BaseStairComponent):
             print(f"  Handrail radius (from center): {picket_placement_radius:.2f}\"")
             print(f"  Pickets positioned directly under handrail center")
             
-            # Find optimal picket division using IBC compliance
-            print(f"\nOPTIMIZING PICKET SPACING:")
+            # Find optimal picket division using IBC compliance (same for all treads)
+            print(f"\nOPTIMIZING PICKET SPACING (SAME FOR ALL TREADS):")
             best_divisions = None
             best_edge_spacing = 0.0
-            best_positions = []
+            best_positions_template = []
+            
+            # Use relative positions (0° to tread_angle_degrees)
+            arc_start_angle = 0.0
+            arc_end_angle = tread_angle_degrees
             
             for num_divisions in range(3, 11):
                 # Calculate positions for this division count
@@ -359,6 +336,10 @@ class PicketModule(BaseStairComponent):
                 if num_divisions == 1:
                     # Single picket at middle
                     angle_deg = (arc_start_angle + arc_end_angle) / 2
+                    angle_rad = math.radians(angle_deg)
+                    x = picket_placement_radius * math.cos(angle_rad)
+                    y = picket_placement_radius * math.sin(angle_rad)
+                    positions.append((x, y, angle_deg))
                 else:
                     # Multiple pickets evenly spaced
                     angular_step = tread_angle_degrees / (num_divisions - 1)
@@ -392,7 +373,7 @@ class PicketModule(BaseStairComponent):
                 if is_compliant and max_edge_spacing > best_edge_spacing:
                     best_divisions = num_divisions
                     best_edge_spacing = max_edge_spacing
-                    best_positions = positions
+                    best_positions_template = positions
             
             if best_divisions is None:
                 print("  ERROR: No compliant division found")
@@ -401,49 +382,92 @@ class PicketModule(BaseStairComponent):
             print(f"\nOPTIMAL SOLUTION:")
             print(f"  Divisions: {best_divisions}")
             print(f"  Edge spacing: {best_edge_spacing:.2f}\" (max allowed: 4.0\")")
-            print(f"  Picket count: {len(best_positions)}")
+            print(f"  Picket count per tread: {len(best_positions_template)}")
             
-            # Create square picket shapes at optimal positions
-            print(f"\nCREATING SAMPLE PICKETS:")
+            # Create the same picket pattern on every tread
+            print(f"\nCREATING PICKETS ON ALL TREADS:")
             picket_size = picket_diameter  # Use diameter as square size
-            created_pickets = []
+            total_created_pickets = []
+            construction_arcs = []  # Track construction arcs separately
             
-            for i, (x, y, angle_deg) in enumerate(best_positions):
-                # Create square picket at first tread level (same Z as tread)
-                half_size = picket_size / 2
+            # Loop through all treads
+            for tread_num in range(num_treads):
+                tread_height = riser_height * (tread_num + 1)  # Each tread is one riser higher
+                tread_start_angle = tread_num * tread_angle_degrees  # Starting angle for this tread
                 
-                # Calculate rotation angle (perpendicular to radial direction)
-                angle_rad = math.radians(angle_deg)
-                cos_a = math.cos(angle_rad)
-                sin_a = math.sin(angle_rad)
+                print(f"\n  TREAD {tread_num + 1}: Height Z={tread_height:.1f}\", Start Angle={tread_start_angle:.1f}°")
                 
-                # Create rotated square corners (aligned with arc)
-                # Radial direction: (cos_a, sin_a)
-                # Tangential direction: (-sin_a, cos_a)
-                corner1 = (x - half_size * cos_a - half_size * (-sin_a), 
-                          y - half_size * sin_a - half_size * cos_a, first_tread_height)
-                corner2 = (x + half_size * cos_a - half_size * (-sin_a), 
-                          y + half_size * sin_a - half_size * cos_a, first_tread_height)
-                corner3 = (x + half_size * cos_a + half_size * (-sin_a), 
-                          y + half_size * sin_a + half_size * cos_a, first_tread_height)
-                corner4 = (x - half_size * cos_a + half_size * (-sin_a), 
-                          y - half_size * sin_a + half_size * cos_a, first_tread_height)
+                # Create construction arcs for this tread
+                arc_center = (0.0, 0.0, tread_height)
+                arc_start_rad = math.radians(tread_start_angle)
+                arc_end_rad = math.radians(tread_start_angle + tread_angle_degrees)
                 
-                # Create 4 lines to form square
-                line1 = autocad_interface.create_line(corner1, corner2)
-                line2 = autocad_interface.create_line(corner2, corner3)
-                line3 = autocad_interface.create_line(corner3, corner4)
-                line4 = autocad_interface.create_line(corner4, corner1)
+                # Outer tread edge arc
+                outer_arc = autocad_interface.create_arc(
+                    arc_center, outside_radius, arc_start_rad, arc_end_rad
+                )
+                if outer_arc:
+                    self.pickets_created.append(outer_arc)
+                    construction_arcs.append(outer_arc)  # Track for later deletion
                 
-                if line1 and line2 and line3 and line4:
-                    self.pickets_created.extend([line1, line2, line3, line4])
-                    created_pickets.append((x, y, angle_deg))
-                    self.picket_positions.append((x, y, first_tread_height))
-                    print(f"  Picket {i+1}: {picket_size:.2f}\" square at angle {angle_deg:.1f}° (rotated to arc), Z={first_tread_height}\"")
-                else:
-                    print(f"  FAILED to create square picket {i+1}")
+                # Inner tread edge arc
+                inner_arc = autocad_interface.create_arc(
+                    arc_center, center_pole_radius, arc_start_rad, arc_end_rad
+                )
+                if inner_arc:
+                    self.pickets_created.append(inner_arc)
+                    construction_arcs.append(inner_arc)  # Track for later deletion
+                
+                # Apply the same pattern to this tread
+                tread_created_pickets = []
+                for i, (template_x, template_y, relative_angle) in enumerate(best_positions_template):
+                    # Calculate actual angle for this tread
+                    actual_angle_deg = tread_start_angle + relative_angle
+                    
+                    # Skip the shortest picket (at relative angle 0°)
+                    if relative_angle == 0.0:
+                        print(f"    Skipping shortest picket at relative angle {relative_angle:.1f}°")
+                        continue
+                    
+                    # Calculate actual position for this tread
+                    actual_angle_rad = math.radians(actual_angle_deg)
+                    x = picket_placement_radius * math.cos(actual_angle_rad)
+                    y = picket_placement_radius * math.sin(actual_angle_rad)
+                    
+                    # Create square picket at this tread level
+                    half_size = picket_size / 2
+                    
+                    # Calculate rotation angle (perpendicular to radial direction)
+                    cos_a = math.cos(actual_angle_rad)
+                    sin_a = math.sin(actual_angle_rad)
+                    
+                    # Create rotated square corners (aligned with arc)
+                    corner1 = (x - half_size * cos_a - half_size * (-sin_a), 
+                              y - half_size * sin_a - half_size * cos_a, tread_height)
+                    corner2 = (x + half_size * cos_a - half_size * (-sin_a), 
+                              y + half_size * sin_a - half_size * cos_a, tread_height)
+                    corner3 = (x + half_size * cos_a + half_size * (-sin_a), 
+                              y + half_size * sin_a + half_size * cos_a, tread_height)
+                    corner4 = (x - half_size * cos_a + half_size * (-sin_a), 
+                              y - half_size * sin_a + half_size * cos_a, tread_height)
+                    
+                    # Create 4 lines to form square
+                    line1 = autocad_interface.create_line(corner1, corner2)
+                    line2 = autocad_interface.create_line(corner2, corner3)
+                    line3 = autocad_interface.create_line(corner3, corner4)
+                    line4 = autocad_interface.create_line(corner4, corner1)
+                    
+                    if line1 and line2 and line3 and line4:
+                        self.pickets_created.extend([line1, line2, line3, line4])
+                        tread_created_pickets.append((x, y, actual_angle_deg, relative_angle))
+                        self.picket_positions.append((x, y, tread_height))
+                        print(f"    Picket {i+1}: {picket_size:.2f}\" square at angle {actual_angle_deg:.1f}° (relative {relative_angle:.1f}°), Z={tread_height}\"")
+                    else:
+                        print(f"    FAILED to create square picket {i+1}")
+                
+                total_created_pickets.extend(tread_created_pickets)
             
-            # Create vertical lines to handrail helix intersection
+            # Create vertical lines to handrail helix intersection for all pickets
             print(f"\nCREATING VERTICAL LINES TO HANDRAIL HELIX:")
             
             # Get handrail helix parameters (matching handrail_module.py)
@@ -459,24 +483,23 @@ class PicketModule(BaseStairComponent):
             print(f"    Start Z: {helix_start_z:.1f}\"")
             print(f"    Helix end Z: {helix_start_z + helix_height:.1f}\"")
             
-            # Calculate riser height and tallest picket length
-            riser_height = 9.0  # Standard riser height in inches
-            tallest_picket_length = riser_height + handrail_height_above_tread  # 45" total
+            # Calculate vertical lines for all created pickets
+            shortest_picket_length = handrail_height_above_tread  # 36"
             
-            for i, (x, y, angle_deg) in enumerate(created_pickets):
-                # All pickets start from the first tread surface
-                picket_start_z = first_tread_height
+            for i, (x, y, actual_angle_deg, relative_angle) in enumerate(total_created_pickets):
+                # Find which tread this picket belongs to
+                tread_num = int(actual_angle_deg // tread_angle_degrees)
                 
-                # Calculate the picket length based on position
-                # The tallest picket (at 30°) should be exactly 45" long
-                # Other pickets are proportionally shorter based on their angular position
-                progress_in_first_tread = angle_deg / tread_angle_degrees  # 0.0 to 1.0 across first tread
+                # Calculate the picket length based on relative position within its tread
+                progress_in_tread = relative_angle / tread_angle_degrees  # 0.0 to 1.0 across tread
                 
-                # Shortest picket (at 0°) extends to handrail height above first tread
-                shortest_picket_length = handrail_height_above_tread  # 36"
+                # Set start position - adjust tallest picket down one riser
+                picket_start_z = riser_height * (tread_num + 1)
+                if progress_in_tread == 1.0:  # Tallest picket - bring bottom down one riser
+                    picket_start_z = picket_start_z - riser_height
                 
                 # Interpolate between shortest and tallest based on position
-                picket_length = shortest_picket_length + (progress_in_first_tread * riser_height)
+                picket_length = shortest_picket_length + (progress_in_tread * riser_height)
                 
                 # End point is start + length
                 picket_end_z = picket_start_z + picket_length
@@ -489,22 +512,38 @@ class PicketModule(BaseStairComponent):
                     self.pickets_created.append(vertical_line)
                     print(f"  Line {i+1}: length {picket_length:.1f}\" "
                           f"(Z={picket_start_z:.1f}\" to Z={picket_end_z:.1f}\") "
-                          f"[angle {angle_deg:.1f}°, progress {progress_in_first_tread:.1%}]")
+                          f"[tread {tread_num+1}, angle {actual_angle_deg:.1f}°, progress {progress_in_tread:.1%}]")
             
-            # Show picket length calculations
-            print(f"\n  Picket length calculations:")
-            print(f"    Shortest picket (0°): {shortest_picket_length:.1f}\" (handrail height)")
-            print(f"    Tallest picket (30°): {tallest_picket_length:.1f}\" (riser + handrail)")
-            print(f"    Riser contribution: 0\" to {riser_height:.1f}\" across tread span")
-            
-            print(f"\nSAMPLE PICKET CREATION COMPLETE:")
+            print(f"\nALL TREADS PICKET CREATION COMPLETE:")
+            print(f"  Total treads: {num_treads}")
             print(f"  Total entities: {len(self.pickets_created)}")
-            print(f"  - 2 construction arcs (tread boundaries)")
-            print(f"  - {len(created_pickets) * 4} lines forming {len(created_pickets)} square pickets ({picket_size:.2f}\" each)")
-            print(f"  - {len(created_pickets)} vertical lines to handrail")
-            print(f"  All geometry at first tread level (Z={first_tread_height}\")")
-            print(f"  Representative of entire stair picket design")
+            print(f"  - {num_treads * 2} construction arcs (tread boundaries)")
+            print(f"  - {len(total_created_pickets) * 4} lines forming {len(total_created_pickets)} square pickets ({picket_size:.2f}\" each)")
+            print(f"  - {len(total_created_pickets)} vertical lines to handrail")
+            print(f"  Identical pattern on every tread at correct heights")
             print(f"  IBC compliant edge spacing: {best_edge_spacing:.2f}\"")
+            
+            # Delete construction arcs as they're only needed for generation
+            print(f"\nDELETING CONSTRUCTION ARCS:")
+            deleted_count = 0
+            for arc in construction_arcs:
+                try:
+                    # Try to delete the arc directly
+                    if hasattr(arc, "Delete"):
+                        arc.Delete()
+                        self.pickets_created.remove(arc)  # Remove from tracking list
+                        deleted_count += 1
+                    # Fallback for mock environment
+                    elif hasattr(autocad_interface, "entities") and arc in autocad_interface.entities:
+                        autocad_interface.entities.remove(arc)
+                        self.pickets_created.remove(arc)  # Remove from tracking list
+                        deleted_count += 1
+                    else:
+                        print(f"  Warning: Could not delete construction arc - no deletion method available")
+                except Exception as e:
+                    print(f"  Warning: Failed to delete construction arc: {e}")
+            
+            print(f"  Deleted {deleted_count} construction arcs")
             
             return True
             

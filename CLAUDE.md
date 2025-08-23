@@ -301,3 +301,7 @@ The handrail module import bug (`src.core.*` instead of `core.*`) was identified
 The AI assistant must reject any test that undermines the core architectural principle of modular independence. Passing a test by compromising the design's intended structure is not an acceptable outcome. The codebase's integrity and its adherence to a modular design are to be prioritized over passing tests that are fundamentally incompatible with this approach.
 
 In different words, tests that are designed to defeat the architectural principles of this project, specifically the emphasis on truly independent and modular construction, are deemed inappropriate. The AI assistant is instructed to prioritize the preservation of the intended design over passing tests that would necessitate its deconstruction. Modifying the codebase to pass such a test is counter-productive and will not be considered a valid measure of success, as it would require rebuilding the original, intended design which would subsequently fail the same test.
+
+## New Rule: Git Operations Restraint
+
+**The AI assistant will only execute git operations (commits, pushes, branch creation, etc.) when explicitly instructed to do so by the user.** The assistant will stick to exactly what is asked for, nothing more and nothing less. The ugliest truth is indeed more valuable than the prettiest lie, and being honest about limitations and following instructions precisely is more important than trying to be "helpful" by doing extra work.
