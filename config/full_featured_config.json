@@ -1,0 +1,50 @@
+{
+  "basic_parameters": {
+    "center_pole_diameter": 6.0,
+    "overall_height": 180.0,
+    "outside_diameter": 84.0,
+    "total_rotation": 540.0,
+    "is_clockwise": false
+  },
+  "compliance_settings": {
+    "ibc_compliance_enabled": true,
+    "educational_mode": false,
+    "regional_code": "IBC_2021"
+  },
+  "component_settings": {
+    "center_pole_enabled": true,
+    "treads_enabled": true,
+    "landings_enabled": true
+  },
+  "post_configuration": {
+    "enabled": true,
+    "spacing": 2,
+    "diameter": 3.0,
+    "material": "steel",
+    "position": "outer_edge"
+  },
+  "handrail_configuration": {
+    "enabled": true,
+    "height_above_tread": 36.0,
+    "diameter": 2.0,
+    "material": "steel",
+    "continuous": true,
+    "end_treatment": "return",
+    "brackets": {
+      "enabled": false,
+      "spacing_inches": 30.0,
+      "bracket_type": "post_mount"
+    }
+  },
+  "picket_configuration": {
+    "enabled": true,
+    "spacing_inches": 3.0,
+    "style": "vertical",
+    "material": "aluminum",
+    "diameter": 0.875
+  },
+  "advanced_settings": {
+    "mock_mode": false,
+    "generation_timeout": 180
+  }
+}

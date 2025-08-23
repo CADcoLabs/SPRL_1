@@ -1,0 +1,8 @@
+# Minimal Runtime Requirements for Spiral Staircase Generator
+# Only essential packages needed for end-user deployment
+
+# AutoCAD COM interface access
+pywin32>=227
+
+# JSON configuration validation  
+jsonschema>=4.0.0
