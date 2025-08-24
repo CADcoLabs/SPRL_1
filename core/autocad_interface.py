@@ -59,6 +59,11 @@ class AutoCADInterface(ABC):
         pass
 
     @abstractmethod
+    def create_polyline(self, points: list) -> Any:
+        """Create a polyline entity."""
+        pass
+
+    @abstractmethod
     def create_arc(
         self, center: tuple, radius: float, start_angle: float, end_angle: float
     ) -> Any:
@@ -233,6 +238,41 @@ class MockAutoCADInterface(AutoCADInterface):
             raise GenerationError(
                 f"Failed to create mock line: {str(e)}",
                 geometry_type="line",
+                operation="create"
+            )
+
+    def create_polyline(self, points: list) -> Dict[str, Any]:
+        """Simulate polyline creation."""
+        try:
+            self.logger.debug(f"Creating mock polyline with {len(points)} points")
+            
+            # Validate inputs
+            if len(points) < 2:
+                raise GeometryError(
+                    "Polyline must have at least 2 points",
+                    calculation="polyline_validation",
+                    input_values={"points": points}
+                )
+            
+            entity = {
+                "type": "polyline",
+                "points": points,
+                "closed": len(points) >= 2 and points[0] == points[-1],
+                "id": len(self.entities),
+            }
+            self.entities.append(entity)
+            self.last_operation = f"Created polyline with {len(points)} points"
+            
+            self.logger.debug(f"Mock polyline created successfully: ID {entity['id']}")
+            return entity
+            
+        except GeometryError:
+            raise
+        except Exception as e:
+            self.logger.error(f"Mock polyline creation failed: {str(e)}", exc_info=True)
+            raise GenerationError(
+                f"Failed to create mock polyline: {str(e)}",
+                geometry_type="polyline",
                 operation="create"
             )
 
@@ -712,6 +752,10 @@ class RealAutoCADInterface(AutoCADInterface):
     def create_line(self, start_point: tuple, end_point: tuple) -> Any:
         """Create line in AutoCAD using geometry creator."""
         return self.geometry_creator.create_line(start_point, end_point)
+
+    def create_polyline(self, points: list) -> Any:
+        """Create polyline in AutoCAD using geometry creator."""
+        return self.geometry_creator.create_polyline(points)
 
     def create_arc(self, center: tuple, radius: float, start_angle: float, end_angle: float) -> Any:
         """Create arc in AutoCAD using geometry creator."""

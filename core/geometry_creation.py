@@ -124,6 +124,116 @@ class AutoCADGeometryCreator:
                 details={"start_point": start_point, "end_point": end_point}
             )
 
+    def create_polyline(self, points: list) -> Any:
+        """
+        Create polyline in AutoCAD using proper parameter marshalling.
+        Uses AddLightweightPolyline (recommended) with fallback to AddPolyline.
+        
+        Args:
+            points: List of (x, y, z) points
+        Returns:
+            AutoCAD polyline entity
+        Raises:
+            AutoCADConnectionError: If not connected
+            GeometryError: If creation fails
+        """
+        if not self.connection_manager.is_connected():
+            error_msg = "Not connected to AutoCAD"
+            self.logger.error(error_msg)
+            raise AutoCADConnectionError(error_msg, is_mock_mode=False)
+        
+        try:
+            self.logger.debug(f"Creating AutoCAD polyline with {len(points)} points")
+            
+            # Validate input
+            if len(points) < 2:
+                raise GeometryError(f"At least 2 points required for polyline, got {len(points)}")
+            
+            # Get model space
+            model_space = self.connection_manager.get_model_space()
+            if not model_space:
+                raise AutoCADConnectionError("Model space not available", is_mock_mode=False)
+            
+            # Extract Z coordinate for elevation (use first point's Z)
+            z_coordinate = None
+            if len(points[0]) >= 3:
+                z_coordinate = float(points[0][2])
+            
+            # Try AddLightweightPolyline first (recommended method)
+            if hasattr(model_space, 'AddLightWeightPolyline'):
+                try:
+                    self.logger.debug("Attempting to create lightweight polyline")
+                    
+                    # Flatten points to 2D format [x1, y1, x2, y2, ...] for lightweight polyline
+                    flattened_2d_points = []
+                    for i, point in enumerate(points):
+                        if len(point) >= 2:
+                            flattened_2d_points.extend([float(point[0]), float(point[1])])
+                        else:
+                            raise GeometryError(f"Point {i} has insufficient coordinates: {point}")
+                    
+                    # Create 2D VARIANT array for lightweight polyline
+                    points_variant_2d = self._convert_to_variant_array_2d(flattened_2d_points)
+                    
+                    # Create lightweight polyline
+                    polyline = model_space.AddLightWeightPolyline(points_variant_2d)
+                    
+                    # Set Z elevation if provided
+                    if z_coordinate is not None:
+                        try:
+                            polyline.Elevation = z_coordinate
+                            self.logger.debug(f"Set lightweight polyline elevation to Z={z_coordinate}")
+                        except Exception as z_error:
+                            self.logger.warning(f"Failed to set lightweight polyline elevation: {z_error}")
+                    
+                    # Close the polyline if first and last points are the same
+                    if len(points) >= 2 and points[0][:2] == points[-1][:2]:
+                        polyline.Closed = True
+                    
+                    self.logger.debug(f"AutoCAD lightweight polyline created successfully")
+                    return polyline
+                    
+                except Exception as lw_error:
+                    self.logger.warning(f"AddLightWeightPolyline failed: {lw_error}, falling back to AddPolyline")
+            
+            # Fallback to AddPolyline (legacy method)
+            self.logger.debug("Attempting to create legacy polyline with 3D coordinates")
+            
+            # Flatten points to 3D format [x1, y1, z1, x2, y2, z2, ...] for legacy polyline
+            flattened_3d_points = []
+            for i, point in enumerate(points):
+                if len(point) >= 2:
+                    x = float(point[0])
+                    y = float(point[1])
+                    z = float(point[2]) if len(point) >= 3 else (z_coordinate if z_coordinate is not None else 0.0)
+                    flattened_3d_points.extend([x, y, z])
+                else:
+                    raise GeometryError(f"Point {i} has insufficient coordinates: {point}")
+            
+            # Create 3D VARIANT array for legacy polyline
+            points_variant_3d = self._convert_to_variant_array_3d(flattened_3d_points)
+            
+            # Create legacy polyline
+            polyline = model_space.AddPolyline(points_variant_3d)
+            
+            # Close the polyline if first and last points are the same
+            if len(points) >= 2 and points[0][:2] == points[-1][:2]:
+                polyline.Closed = True
+            
+            self.logger.debug(f"AutoCAD legacy polyline created successfully")
+            return polyline
+            
+        except (AutoCADConnectionError, GeometryError):
+            raise
+        except Exception as e:
+            error_msg = f"Failed to create polyline in AutoCAD: {str(e)}"
+            self.logger.error(error_msg, exc_info=True)
+            raise GeometryError(
+                error_msg,
+                geometry_type="polyline",
+                operation="create"
+            )
+
     def create_arc(self, center: tuple, radius: float, start_angle: float, end_angle: float) -> Any:
         """
         Create arc in AutoCAD using proper parameter marshalling.
@@ -497,5 +607,89 @@ class AutoCADGeometryCreator:
             raise GeometryError(
                 f"Coordinate conversion failed: {e}",
                 calculation="coordinate_conversion",
+                input_values={"coordinates": coordinates}
+            )
+
+    def _convert_to_variant_array_2d(self, coordinates: list) -> Any:
+        """
+        Convert Python 2D coordinates to win32com VARIANT array format for lightweight polylines.
+        
+        Args:
+            coordinates: List of flattened 2D coordinates [x1, y1, x2, y2, ...]
+            
+        Returns:
+            win32com.client.VARIANT array compatible with AutoCAD AddLightWeightPolyline
+            
+        Raises:
+            GeometryError: If conversion fails
+        """
+        try:
+            if len(coordinates) % 2 != 0:
+                raise GeometryError(f"2D coordinates must have even number of elements (pairs of X,Y), got {len(coordinates)}")
+            
+            if len(coordinates) < 4:
+                raise GeometryError(f"At least 4 elements (2 points) required for 2D polyline, got {len(coordinates)}")
+            
+            # Ensure all coordinates are floats
+            coords = [float(coord) for coord in coordinates]
+            
+            # Create VARIANT array for 2D coordinates
+            import win32com.client
+            import pythoncom
+            variant_array = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                coords
+            )
+            
+            self.logger.debug(f"Converted {len(coordinates)} 2D coordinates to VARIANT array")
+            return variant_array
+            
+        except Exception as e:
+            self.logger.error(f"Failed to convert 2D coordinates to VARIANT: {e}")
+            raise GeometryError(
+                f"2D coordinate conversion failed: {e}",
+                calculation="2d_coordinate_conversion",
+                input_values={"coordinates": coordinates}
+            )
+
+    def _convert_to_variant_array_3d(self, coordinates: list) -> Any:
+        """
+        Convert Python 3D coordinates to win32com VARIANT array format for legacy polylines.
+        
+        Args:
+            coordinates: List of flattened 3D coordinates [x1, y1, z1, x2, y2, z2, ...]
+            
+        Returns:
+            win32com.client.VARIANT array compatible with AutoCAD AddPolyline
+            
+        Raises:
+            GeometryError: If conversion fails
+        """
+        try:
+            if len(coordinates) % 3 != 0:
+                raise GeometryError(f"3D coordinates must have elements in multiples of 3 (triplets of X,Y,Z), got {len(coordinates)}")
+            
+            if len(coordinates) < 6:
+                raise GeometryError(f"At least 6 elements (2 points) required for 3D polyline, got {len(coordinates)}")
+            
+            # Ensure all coordinates are floats
+            coords = [float(coord) for coord in coordinates]
+            
+            # Create VARIANT array for 3D coordinates
+            import win32com.client
+            import pythoncom
+            variant_array = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                coords
+            )
+            
+            self.logger.debug(f"Converted {len(coordinates)} 3D coordinates to VARIANT array")
+            return variant_array
+            
+        except Exception as e:
+            self.logger.error(f"Failed to convert 3D coordinates to VARIANT: {e}")
+            raise GeometryError(
+                f"3D coordinate conversion failed: {e}",
+                calculation="3d_coordinate_conversion",
                 input_values={"coordinates": coordinates}
             )

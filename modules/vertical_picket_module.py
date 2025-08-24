@@ -457,23 +457,21 @@ class VerticalPicketModule(BaseStairComponent):
                     corner4 = (x - half_size * cos_a + half_size * (-sin_a), 
                               y - half_size * sin_a + half_size * cos_a, tread_height)
                     
-                    # Create 4 lines to form square
-                    line1 = autocad_interface.create_line(corner1, corner2)
-                    line2 = autocad_interface.create_line(corner2, corner3)
-                    line3 = autocad_interface.create_line(corner3, corner4)
-                    line4 = autocad_interface.create_line(corner4, corner1)
+                    # Create square as closed polyline
+                    square_points = [corner1, corner2, corner3, corner4, corner1]  # Close the square
+                    square_polyline = autocad_interface.create_polyline(square_points)
                     
-                    if line1 and line2 and line3 and line4:
-                        self.pickets_created.extend([line1, line2, line3, line4])
+                    if square_polyline:
+                        self.pickets_created.append(square_polyline)
                         tread_created_pickets.append((x, y, actual_angle_deg, relative_angle))
                         self.picket_positions.append((x, y, tread_height))
-                        print(f"    Picket {i+1}: {picket_size:.2f}\" square at angle {actual_angle_deg:.1f}° (relative {relative_angle:.1f}°), Z={tread_height}\"")
+                        print(f"    Picket {i+1}: {picket_size:.2f}\" square polyline at angle {actual_angle_deg:.1f}° (relative {relative_angle:.1f}°), Z={tread_height}\"")
                         
                         # Add micro-delay after each picket creation to prevent positioning errors
                         import time
                         time.sleep(0.02)  # 20ms delay after each picket
                     else:
-                        print(f"    FAILED to create square picket {i+1}")
+                        print(f"    FAILED to create square picket polyline {i+1}")
                 
                 total_created_pickets.extend(tread_created_pickets)
                 
@@ -536,7 +534,7 @@ class VerticalPicketModule(BaseStairComponent):
             print(f"  Total treads: {num_treads}")
             print(f"  Total entities: {len(self.pickets_created)}")
             print(f"  - {num_treads * 2} construction arcs (tread boundaries)")
-            print(f"  - {len(total_created_pickets) * 4} lines forming {len(total_created_pickets)} square pickets ({picket_size:.2f}\" each)")
+            print(f"  - {len(total_created_pickets)} closed polyline squares ({picket_size:.2f}\" each)")
             print(f"  - {len(total_created_pickets)} vertical lines to handrail")
             print(f"  Identical pattern on every tread at correct heights")
             print(f"  IBC compliant edge spacing: {best_edge_spacing:.2f}\"")
@@ -563,20 +561,7 @@ class VerticalPicketModule(BaseStairComponent):
             
             print(f"  Deleted {deleted_count} construction arcs")
             
-            # Perform batch JOIN operation on all entities on the PICKETS layer
-            print(f"\nPERFORMING BATCH JOIN OPERATION:")
-            try:
-                # Select all entities on the PICKETS layer
-                selection_set = autocad_interface.select_entities_by_layer("PICKETS")
-                
-                # Send the JOIN command to AutoCAD
-                # Note: In AutoCAD, the JOIN command works on the current selection
-                autocad_interface.send_command("JOIN")
-                
-                print(f"  Batch JOIN operation completed successfully")
-            except Exception as e:
-                print(f"  Warning: Batch JOIN operation failed: {e}")
-                # This is not a critical failure, so we continue
+            print(f"\nPICKET SHAPES CREATED AS CLOSED POLYLINES - NO JOIN OPERATION NEEDED")
             
             return True
             

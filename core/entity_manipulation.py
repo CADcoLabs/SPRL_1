@@ -520,6 +520,9 @@ class AutoCADEntityManipulator:
             raise AutoCADConnectionError(error_msg, is_mock_mode=False)
 
         try:
+            import win32com.client
+            import pythoncom
+            
             self.logger.debug(f"Selecting entities by layer: {layer_name}")
 
             # Get document
@@ -528,10 +531,10 @@ class AutoCADEntityManipulator:
                 raise AutoCADConnectionError("Document not available", is_mock_mode=False)
 
             # Create a selection filter for the layer
-            # Filter format: [group code, operator, value]
-            # Group code 8 is for layer name
-            filter_type = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I4, [8])
-            filter_data = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, [layer_name])
+            # Filter format: DXF group code 8 is for layer name
+            # AutoCAD COM expects simple arrays, not VARIANT wrappers
+            filter_type = [8]  # DXF group code for layer
+            filter_data = [layer_name]  # Layer name to filter by
 
             # Perform the selection
             # 5 = acSelectionSetAll - Select all entities matching filter
