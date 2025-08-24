@@ -36,12 +36,27 @@
       "bracket_type": "post_mount"
     }
   },
-  "picket_configuration": {
+  "vertical_picket_configuration": {
     "enabled": true,
     "spacing_inches": 3.0,
-    "style": "vertical",
     "material": "aluminum",
-    "diameter": 0.875
+    "diameter": 0.875,
+    "quantity": 4,
+    "position": "outer"
+  },
+  "horizontal_picket_configuration": {
+    "enabled": false,
+    "rail_material": "aluminum",
+    "rail_profile": "square_1x1",
+    "rail_levels": 4,
+    "level_distribution": "even",
+    "mounting_system": "bracket_mount",
+    "bracket_material": "aluminum",
+    "connection_type": "post_mount",
+    "galvanic_isolation": true,
+    "rail_length_max": 72.0,
+    "deflection_limit": 0.25,
+    "custom_levels": []
   },
   "advanced_settings": {
     "mock_mode": false,

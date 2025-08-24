@@ -221,52 +221,124 @@ class ConfigManager:
                     },
                     "additionalProperties": False,
                 },
-                "picket_configuration": {
+                "vertical_picket_configuration": {
                     "type": "object",
                     "properties": {
                         "enabled": {
                             "type": "boolean",
                             "default": False,
-                            "description": "Enable picket/baluster generation",
+                            "description": "Enable vertical picket/baluster generation",
                         },
                         "spacing_inches": {
                             "type": "number",
                             "minimum": 1.0,
                             "maximum": 4.0,
                             "default": 3.5,
-                            "description": "Picket spacing in inches (IBC max 4\")",
-                        },
-                        "style": {
-                            "type": "string",
-                            "enum": ["vertical", "horizontal"],
-                            "default": "vertical",
-                            "description": "Picket orientation",
+                            "description": "Vertical picket edge-to-edge spacing in inches (IBC max 4\")",
                         },
                         "material": {
                             "type": "string",
                             "enum": ["aluminum", "steel", "wood", "composite"],
                             "default": "aluminum",
-                            "description": "Picket material type",
+                            "description": "Vertical picket material type",
                         },
                         "diameter": {
                             "type": "number",
                             "minimum": 0.375,
                             "maximum": 2.0,
                             "default": 0.75,
-                            "description": "Picket diameter/width in inches (square pickets default)",
+                            "description": "Vertical picket diameter/width in inches (square pickets)",
                         },
                         "quantity": {
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 20,
                             "default": 3,
-                            "description": "Number of pickets per tread section",
+                            "description": "Number of vertical pickets per tread section (reference)",
                         },
                         "position": {
                             "type": "string",
                             "enum": ["outer", "inner", "middle"],
                             "default": "outer",
-                            "description": "Position of pickets relative to tread",
+                            "description": "Position of vertical pickets relative to tread",
+                        },
+                    },
+                    "additionalProperties": False,
+                },
+                "horizontal_picket_configuration": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Enable horizontal rail infill system",
+                        },
+                        "rail_material": {
+                            "type": "string",
+                            "enum": ["aluminum", "steel", "wood", "composite"],
+                            "default": "aluminum",
+                            "description": "Horizontal rail material type",
+                        },
+                        "rail_profile": {
+                            "type": "string",
+                            "enum": ["square_1x1", "rectangular_1x2", "round_1", "custom"],
+                            "default": "square_1x1",
+                            "description": "Horizontal rail cross-section profile",
+                        },
+                        "rail_levels": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 8,
+                            "default": 4,
+                            "description": "Number of horizontal rail levels",
+                        },
+                        "level_distribution": {
+                            "type": "string",
+                            "enum": ["even", "concentrated_lower", "concentrated_upper", "custom"],
+                            "default": "even",
+                            "description": "Distribution pattern for rail levels",
+                        },
+                        "mounting_system": {
+                            "type": "string",
+                            "enum": ["bracket_mount", "weld_mount", "clamp_mount"],
+                            "default": "bracket_mount",
+                            "description": "Rail mounting system type",
+                        },
+                        "bracket_material": {
+                            "type": "string",
+                            "enum": ["aluminum", "steel", "stainless"],
+                            "default": "aluminum",
+                            "description": "Mounting bracket material",
+                        },
+                        "connection_type": {
+                            "type": "string",
+                            "enum": ["post_mount", "direct_tread", "handrail_mount"],
+                            "default": "post_mount",
+                            "description": "Rail connection method",
+                        },
+                        "galvanic_isolation": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Use isolation pads between dissimilar metals",
+                        },
+                        "rail_length_max": {
+                            "type": "number",
+                            "minimum": 12.0,
+                            "maximum": 120.0,
+                            "default": 72.0,
+                            "description": "Maximum single rail length in inches",
+                        },
+                        "deflection_limit": {
+                            "type": "number",
+                            "minimum": 0.1,
+                            "maximum": 1.0,
+                            "default": 0.25,
+                            "description": "Maximum rail deflection in inches",
+                        },
+                        "custom_levels": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "description": "Custom rail level heights when level_distribution=custom",
                         },
                     },
                     "additionalProperties": False,
@@ -340,14 +412,27 @@ class ConfigManager:
                     "bracket_type": "post_mount"
                 }
             },
-            "picket_configuration": {
+            "vertical_picket_configuration": {
                 "enabled": True,
                 "spacing_inches": 3.5,
-                "style": "vertical",
                 "material": "aluminum",
                 "diameter": 0.75,
                 "quantity": 3,
                 "position": "outer",
+            },
+            "horizontal_picket_configuration": {
+                "enabled": False,
+                "rail_material": "aluminum",
+                "rail_profile": "square_1x1",
+                "rail_levels": 4,
+                "level_distribution": "even",
+                "mounting_system": "bracket_mount",
+                "bracket_material": "aluminum",
+                "connection_type": "post_mount",
+                "galvanic_isolation": True,
+                "rail_length_max": 72.0,
+                "deflection_limit": 0.25,
+                "custom_levels": [],
             },
             "advanced_settings": {
                 "mock_mode": True,
@@ -375,6 +460,9 @@ class ConfigManager:
 
             with open(file_path, "r") as f:
                 loaded_config = json.load(f)
+
+            # Apply backward compatibility migration
+            loaded_config = self._migrate_legacy_config(loaded_config)
 
             # Validate against schema
             validate(instance=loaded_config, schema=self.schema)
@@ -496,3 +584,65 @@ class ConfigManager:
                 result[section] = values
 
         return result
+
+    def _migrate_legacy_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Migrate legacy configuration format to new dual-picket format.
+        
+        Handles backward compatibility by converting old 'picket_configuration'
+        to separate 'vertical_picket_configuration' and 'horizontal_picket_configuration'.
+        
+        Args:
+            config: Configuration dictionary (potentially legacy format)
+            
+        Returns:
+            Migrated configuration dictionary
+        """
+        # Check if legacy picket_configuration exists
+        if "picket_configuration" in config:
+            print("Migrating legacy picket configuration to dual-module format...")
+            
+            legacy_picket = config["picket_configuration"]
+            style = legacy_picket.get("style", "vertical")
+            
+            # Create vertical picket configuration
+            vertical_config = {
+                "enabled": legacy_picket.get("enabled", False) and style == "vertical",
+                "spacing_inches": legacy_picket.get("spacing_inches", 3.5),
+                "material": legacy_picket.get("material", "aluminum"),
+                "diameter": legacy_picket.get("diameter", 0.75),
+                "quantity": legacy_picket.get("quantity", 3),
+                "position": legacy_picket.get("position", "outer"),
+            }
+            
+            # Create horizontal picket configuration
+            horizontal_config = {
+                "enabled": legacy_picket.get("enabled", False) and style == "horizontal",
+                "rail_material": legacy_picket.get("material", "aluminum"),
+                "rail_profile": "square_1x1",  # Default profile
+                "rail_levels": 4,  # Default levels
+                "level_distribution": "even",  # Default distribution
+                "mounting_system": "bracket_mount",  # Default mounting
+                "bracket_material": legacy_picket.get("material", "aluminum"),
+                "connection_type": "post_mount",  # Default connection
+                "galvanic_isolation": True,  # Default isolation
+                "rail_length_max": 72.0,  # Default max length
+                "deflection_limit": 0.25,  # Default deflection
+                "custom_levels": [],  # Default custom levels
+            }
+            
+            # Remove legacy configuration and add new ones
+            migrated_config = config.copy()
+            del migrated_config["picket_configuration"]
+            migrated_config["vertical_picket_configuration"] = vertical_config
+            migrated_config["horizontal_picket_configuration"] = horizontal_config
+            
+            print(f"Legacy migration complete:")
+            print(f"  - Original style: {style}")
+            print(f"  - Vertical pickets enabled: {vertical_config['enabled']}")
+            print(f"  - Horizontal pickets enabled: {horizontal_config['enabled']}")
+            
+            return migrated_config
+        
+        # No migration needed
+        return config

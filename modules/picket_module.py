@@ -330,7 +330,7 @@ class PicketModule(BaseStairComponent):
             arc_start_angle = 0.0
             arc_end_angle = tread_angle_degrees
             
-            for num_divisions in range(3, 11):
+            for num_divisions in range(2, 8):
                 # Calculate positions for this division count
                 positions = []
                 if num_divisions == 1:
@@ -462,10 +462,18 @@ class PicketModule(BaseStairComponent):
                         tread_created_pickets.append((x, y, actual_angle_deg, relative_angle))
                         self.picket_positions.append((x, y, tread_height))
                         print(f"    Picket {i+1}: {picket_size:.2f}\" square at angle {actual_angle_deg:.1f}° (relative {relative_angle:.1f}°), Z={tread_height}\"")
+                        
+                        # Add micro-delay after each picket creation to prevent positioning errors
+                        import time
+                        time.sleep(0.02)  # 20ms delay after each picket
                     else:
                         print(f"    FAILED to create square picket {i+1}")
                 
                 total_created_pickets.extend(tread_created_pickets)
+                
+                # Add small delay after completing each tread to prevent COM timing issues
+                import time
+                time.sleep(0.05)  # 50ms delay after each tread
             
             # Create vertical lines to handrail helix intersection for all pickets
             print(f"\nCREATING VERTICAL LINES TO HANDRAIL HELIX:")
@@ -513,6 +521,10 @@ class PicketModule(BaseStairComponent):
                     print(f"  Line {i+1}: length {picket_length:.1f}\" "
                           f"(Z={picket_start_z:.1f}\" to Z={picket_end_z:.1f}\") "
                           f"[tread {tread_num+1}, angle {actual_angle_deg:.1f}°, progress {progress_in_tread:.1%}]")
+                    
+                    # Add micro-delay after each vertical line to prevent completion failures
+                    import time
+                    time.sleep(0.015)  # 15ms delay after each vertical line
             
             print(f"\nALL TREADS PICKET CREATION COMPLETE:")
             print(f"  Total treads: {num_treads}")

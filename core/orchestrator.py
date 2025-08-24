@@ -30,7 +30,8 @@ from modules.center_pole_module import CenterPoleModule
 from modules.tread_module import TreadModule
 from modules.landing_module import LandingModule
 from modules.post_module import PostModule
-from modules.picket_module import PicketModule
+from modules.vertical_picket_module import VerticalPicketModule
+from modules.horizontal_picket_module import HorizontalPicketModule
 from modules.handrail_module import HandrailModule
 
 
@@ -104,6 +105,16 @@ class ComponentInfo:
 
 class PostsComponentInfo(ComponentInfo):
     """Component info for Posts following zero-dependency principle."""
+    
+    def is_enabled(self, config: Dict[str, Any]) -> bool:
+        """Check if posts are enabled - only when horizontal pickets are enabled."""
+        # Posts are only present when horizontal pickets are enabled
+        horizontal_pickets = config.get('horizontal_picket_configuration', {})
+        if not horizontal_pickets.get('enabled', False):
+            return False
+        
+        # If horizontal pickets are enabled, check the regular post configuration
+        return super().is_enabled(config)
     
     def get_duration(self) -> Optional[float]:
         """Get component generation duration in seconds."""
@@ -206,12 +217,21 @@ class MasterStairOrchestrator:
                 required=False
             ),
             
-            # Pickets - independent generation (OPTIONAL for modular architecture)
+            # Vertical Pickets - independent generation (OPTIONAL for modular architecture)
             ComponentInfo(
-                name="Pickets",
-                component_class=PicketModule,
+                name="Vertical Pickets",
+                component_class=VerticalPicketModule,
                 dependencies=[],  # Remove dependency to enable independent generation
-                config_key="picket_configuration.enabled",
+                config_key="vertical_picket_configuration.enabled",
+                required=False
+            ),
+            
+            # Horizontal Pickets - independent generation (OPTIONAL for modular architecture)  
+            ComponentInfo(
+                name="Horizontal Pickets",
+                component_class=HorizontalPicketModule,
+                dependencies=[],  # Remove dependency to enable independent generation
+                config_key="horizontal_picket_configuration.enabled",
                 required=False
             ),
             
@@ -232,12 +252,13 @@ class MasterStairOrchestrator:
         
         # Set structurally logical generation order (no dependencies needed due to modular architecture)
         self.generation_order = [
-            "Center Pole",    # Foundation
-            "Treads",         # Structure  
-            "Landings",       # Platforms
-            "Posts",          # Supports (only if horizontal pickets)
-            "Handrails",      # Safety
-            "Pickets"         # Finishing
+            "Center Pole",       # Foundation
+            "Treads",            # Structure  
+            "Landings",          # Platforms
+            "Posts",             # Supports (only if horizontal pickets)
+            "Handrails",         # Safety
+            "Vertical Pickets",  # Finishing - vertical balusters
+            "Horizontal Pickets" # Finishing - horizontal rails
         ]
         self.logger.info(f"Component generation order: {' -> '.join(self.generation_order)}")
         
@@ -513,6 +534,10 @@ class MasterStairOrchestrator:
             # Update progress
             progress = base_progress + (i + 1) * component_progress_size
             self._notify_progress(progress)
+            
+            # Add delay between component generations to prevent COM timing issues
+            if i < len(enabled_components) - 1:  # Don't delay after the last component
+                time.sleep(0.25)  # 250ms delay between components (increased for reliability)
         
         # Phase 4: Cleanup and finalization
         self.current_phase = GenerationPhase.CLEANUP
@@ -747,11 +772,18 @@ class MasterStairOrchestrator:
                                 'handrail_height': geometry_info.get('height_above_tread', 36.0),
                             })
                             
-                        elif component_name == "Pickets":
-                            # Add picket-specific measurements if available
+                        elif component_name == "Vertical Pickets":
+                            # Add vertical picket-specific measurements if available
                             actual_specs.update({
-                                'picket_count': geometry_info.get('total_pickets', 0),
-                                'picket_spacing': geometry_info.get('actual_spacing', 0),
+                                'vertical_picket_count': geometry_info.get('total_pickets', 0),
+                                'vertical_picket_spacing': geometry_info.get('actual_spacing', 0),
+                            })
+                        
+                        elif component_name == "Horizontal Pickets":
+                            # Add horizontal picket-specific measurements if available
+                            actual_specs.update({
+                                'horizontal_rail_levels': geometry_info.get('rail_levels', 0),
+                                'horizontal_rail_length': geometry_info.get('total_length', 0),
                             })
                             
                     except Exception as e:

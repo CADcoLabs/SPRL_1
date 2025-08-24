@@ -27,7 +27,8 @@ class MockOrchestrator:
             "Treads", 
             "Landings",
             "Posts",
-            "Pickets", 
+            "Vertical Pickets", 
+            "Horizontal Pickets",
             "Handrails"
         ]
         
@@ -75,10 +76,18 @@ class MockOrchestrator:
                 log_callback(f"{component} generation completed successfully")
                 
             # Simulate occasional warnings for testing
-            if component == "Pickets" and config.get("picket_configuration", {}).get("enabled", False):
-                quantity = config.get("picket_configuration", {}).get("quantity", 12)
-                if log_callback:
-                    log_callback(f"Generated {quantity} pickets with IBC compliance checking")
+            if component == "Vertical Pickets":
+                vertical_pickets = config.get("vertical_picket_configuration", {})
+                if vertical_pickets.get("enabled", False):
+                    quantity = vertical_pickets.get("quantity", 3)
+                    if log_callback:
+                        log_callback(f"Generated {quantity} vertical pickets with IBC compliance checking")
+            elif component == "Horizontal Pickets":
+                horizontal_pickets = config.get("horizontal_picket_configuration", {})
+                if horizontal_pickets.get("enabled", False):
+                    levels = horizontal_pickets.get("rail_levels", 4)
+                    if log_callback:
+                        log_callback(f"Generated {levels}-level horizontal rail system")
         
         if status_callback:
             status_callback("Stair generation completed successfully!")
@@ -953,7 +962,13 @@ class SpiralStairUI:
         if self.center_pole_enabled.get(): enabled_components.append("Center Pole")
         if self.treads_enabled.get(): enabled_components.append("Treads")
         if self.landings_enabled.get(): enabled_components.append("Landings")
-        if self.pickets_enabled.get(): enabled_components.append("Pickets")
+        if self.pickets_enabled.get():
+            if self.picket_style_var.get() == "vertical":
+                enabled_components.append("Vertical Pickets")
+            elif self.picket_style_var.get() == "horizontal":
+                enabled_components.append("Horizontal Pickets")
+            else:
+                enabled_components.append("Vertical Pickets")  # Default to vertical
         if self.handrail_enabled.get(): enabled_components.append("Handrail")
         if self.posts_enabled.get(): enabled_components.append("Posts")
         
@@ -1559,12 +1574,27 @@ class SpiralStairUI:
                         "bracket_type": "post_mount"
                     }
                 },
-                "picket_configuration": {
-                    "enabled": self.pickets_enabled.get(),
+                "vertical_picket_configuration": {
+                    "enabled": self.pickets_enabled.get() and self.picket_style_var.get() == "vertical",
                     "spacing_inches": 3.5,  # Use default for now
-                    "style": self.picket_style_var.get(),
                     "material": self.picket_material_var.get(),
-                    "diameter": self.picket_diameter_var.get()
+                    "diameter": self.picket_diameter_var.get(),
+                    "quantity": 3,
+                    "position": "outer"
+                },
+                "horizontal_picket_configuration": {
+                    "enabled": self.pickets_enabled.get() and self.picket_style_var.get() == "horizontal",
+                    "rail_material": self.picket_material_var.get(),
+                    "rail_profile": "square_1x1",
+                    "rail_levels": 4,
+                    "level_distribution": "even",
+                    "mounting_system": "bracket_mount",
+                    "bracket_material": self.picket_material_var.get(),
+                    "connection_type": "post_mount",
+                    "galvanic_isolation": True,
+                    "rail_length_max": 72.0,
+                    "deflection_limit": 0.25,
+                    "custom_levels": []
                 },
                 "advanced_settings": {
                     "mock_mode": self.mock_mode.get(),
@@ -1821,20 +1851,51 @@ class SpiralStairUI:
         self.handrail_end_var.set(handrail.get("end_treatment", "cap"))
         self.handrail_offset_var.set(handrail.get("custom_offset", 0.0))
         
-        # Pickets
-        pickets = config.get("picket_configuration", {})
-        self.pickets_enabled.set(pickets.get("enabled", False))
-        self.picket_quantity_var.set(pickets.get("quantity", 12))
-        self.picket_base_quantity_var.set(pickets.get("base_quantity", 12))
-        self.picket_adjustment_var.set(pickets.get("adjustment", 0))
-        self.picket_style_var.set(pickets.get("style", "vertical"))  # Default to vertical
-        self.picket_material_var.set(pickets.get("material", "aluminum"))
-        self.picket_shape_var.set(pickets.get("shape", "square"))
-        self.picket_diameter_var.set(pickets.get("diameter", 0.75))
-        self.picket_square_var.set(pickets.get("square_side", 0.75))
-        self.picket_other_var.set(pickets.get("other_spec", "Custom specification"))
-        self.picket_position_var.set(pickets.get("position", "under_handrail"))
-        self.picket_custom_dim_var.set(pickets.get("custom_dimension", 0.0))
+        # Pickets - Handle both new dual format and legacy format
+        vertical_pickets = config.get("vertical_picket_configuration", {})
+        horizontal_pickets = config.get("horizontal_picket_configuration", {})
+        
+        # Legacy fallback for old configurations
+        legacy_pickets = config.get("picket_configuration", {})
+        
+        # Determine if any picket type is enabled
+        vertical_enabled = vertical_pickets.get("enabled", False)
+        horizontal_enabled = horizontal_pickets.get("enabled", False)
+        legacy_enabled = legacy_pickets.get("enabled", False)
+        
+        self.pickets_enabled.set(vertical_enabled or horizontal_enabled or legacy_enabled)
+        
+        # Set style based on what's enabled
+        if vertical_enabled:
+            self.picket_style_var.set("vertical")
+            self.picket_material_var.set(vertical_pickets.get("material", "aluminum"))
+            self.picket_quantity_var.set(vertical_pickets.get("quantity", 3))
+        elif horizontal_enabled:
+            self.picket_style_var.set("horizontal")
+            self.picket_material_var.set(horizontal_pickets.get("rail_material", "aluminum"))
+            self.picket_quantity_var.set(horizontal_pickets.get("rail_levels", 4))
+        else:
+            # Legacy or default values
+            self.picket_style_var.set(legacy_pickets.get("style", "vertical"))
+            self.picket_material_var.set(legacy_pickets.get("material", "aluminum"))
+            self.picket_quantity_var.set(legacy_pickets.get("quantity", 12))
+            
+        self.picket_base_quantity_var.set(legacy_pickets.get("base_quantity", 12))
+        self.picket_adjustment_var.set(legacy_pickets.get("adjustment", 0))
+        self.picket_shape_var.set(legacy_pickets.get("shape", "square"))
+        
+        # Use appropriate diameter based on configuration type
+        if vertical_enabled:
+            self.picket_diameter_var.set(vertical_pickets.get("diameter", 0.75))
+        elif horizontal_enabled:
+            self.picket_diameter_var.set(1.0)  # Default for horizontal rails
+        else:
+            self.picket_diameter_var.set(legacy_pickets.get("diameter", 0.75))
+            
+        self.picket_square_var.set(legacy_pickets.get("square_side", 0.75))
+        self.picket_other_var.set(legacy_pickets.get("other_spec", "Custom specification"))
+        self.picket_position_var.set(legacy_pickets.get("position", "under_handrail"))
+        self.picket_custom_dim_var.set(legacy_pickets.get("custom_dimension", 0.0))
         
         # Posts tab visibility will be updated in setup_ui_complete()
         
@@ -2196,7 +2257,7 @@ by Barry Adams 2025
             self.landings_enabled.set(True)
             
             # Pickets Tab
-            self.pickets_enabled.set(False)
+            self.pickets_enabled.set(True)
             self.picket_quantity_var.set(12)
             self.picket_adjustment_var.set(0)
             self.picket_base_quantity_var.set(12)

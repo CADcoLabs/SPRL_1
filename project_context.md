@@ -5,7 +5,7 @@ This file provides essential context for AI assistants to quickly understand and
 ## Project Overview
 - **Name**: Modular Spiral Stair Creator System
 - **Purpose**: Generate complete spiral staircases in AutoCAD with IBC compliance
-- **Status**: PRODUCTION READY (main branch)
+- **Status**: PRODUCTION READY (005a branch)
 - **Technology**: Python 3, AutoCAD 2025 COM API, Tkinter UI
 
 ## Key Facts to Remember
