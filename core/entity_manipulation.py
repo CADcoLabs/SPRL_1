@@ -5,6 +5,7 @@ Handles entity creation, modification, and utility operations.
 
 from typing import Optional, Any, List, Dict
 import math
+import time
 
 from .logging_config import get_logger
 from .exceptions import AutoCADConnectionError, GenerationError
@@ -388,6 +389,209 @@ class AutoCADEntityManipulator:
                 geometry_type="dimension",
                 operation="create",
                 details={"point1": point1, "point2": point2, "dimension_line_point": dimension_line_point}
+            )
+
+    def create_layer(self, layer_name: str, color: int = 7) -> Any:
+        """
+        Create a new layer with the specified name and color.
+        
+        Args:
+            layer_name: Name of the layer to create
+            color: Color index for the layer (default is 7 - white/black)
+            
+        Returns:
+            AutoCAD layer object
+            
+        Raises:
+            AutoCADConnectionError: If not connected
+            GenerationError: If creation fails
+        """
+        self.logger.debug(f"Attempting to create layer: {layer_name} with color {color}")
+        
+        if not self.connection_manager.is_connected():
+            error_msg = "Not connected to AutoCAD"
+            self.logger.error(error_msg)
+            raise AutoCADConnectionError(error_msg, is_mock_mode=False)
+
+        try:
+            self.logger.debug(f"Creating AutoCAD layer: {layer_name} with color {color}")
+
+            # Get document
+            doc = self.connection_manager.get_document()
+            if not doc:
+                raise AutoCADConnectionError("Document not available", is_mock_mode=False)
+                
+            self.logger.debug("Document retrieved successfully")
+
+            # Get layers collection
+            layers = doc.Layers
+            self.logger.debug("Layers collection retrieved successfully")
+            
+            # Check if layer already exists
+            try:
+                layer = layers.Item(layer_name)
+                self.logger.debug(f"Layer '{layer_name}' already exists")
+                return layer
+            except Exception as e:
+                self.logger.debug(f"Layer '{layer_name}' does not exist, creating it: {e}")
+                # Layer doesn't exist, create it
+                layer = layers.Add(layer_name)
+                layer.Color = color
+                self.logger.debug(f"AutoCAD layer '{layer_name}' created successfully with color {color}")
+                return layer
+
+        except AutoCADConnectionError:
+            raise
+        except Exception as e:
+            error_msg = f"Failed to create layer '{layer_name}': {str(e)}"
+            self.logger.error(error_msg, exc_info=True)
+            raise GenerationError(
+                error_msg,
+                geometry_type="layer",
+                operation="create",
+                details={"layer_name": layer_name, "color": color}
+            )
+
+    def set_active_layer(self, layer_name: str) -> None:
+        """
+        Set the active layer by name.
+        
+        Args:
+            layer_name: Name of the layer to set as active
+            
+        Raises:
+            AutoCADConnectionError: If not connected
+            GenerationError: If setting fails
+        """
+        self.logger.debug(f"Attempting to set active layer to: {layer_name}")
+        
+        if not self.connection_manager.is_connected():
+            error_msg = "Not connected to AutoCAD"
+            self.logger.error(error_msg)
+            raise AutoCADConnectionError(error_msg, is_mock_mode=False)
+
+        try:
+            self.logger.debug(f"Setting active layer to: {layer_name}")
+
+            # Get document
+            doc = self.connection_manager.get_document()
+            if not doc:
+                raise AutoCADConnectionError("Document not available", is_mock_mode=False)
+                
+            self.logger.debug("Document retrieved successfully")
+
+            # Get the layer
+            layer = doc.Layers.Item(layer_name)
+            self.logger.debug(f"Layer '{layer_name}' retrieved successfully")
+
+            # Set the active layer
+            doc.ActiveLayer = layer
+            self.logger.debug(f"Active layer set to '{layer_name}'")
+
+        except AutoCADConnectionError:
+            raise
+        except Exception as e:
+            error_msg = f"Failed to set active layer '{layer_name}': {str(e)}"
+            self.logger.error(error_msg, exc_info=True)
+            raise GenerationError(
+                error_msg,
+                geometry_type="layer",
+                operation="set_active",
+                details={"layer_name": layer_name}
+            )
+
+    def select_entities_by_layer(self, layer_name: str) -> Any:
+        """
+        Select all entities on the specified layer.
+        
+        Args:
+            layer_name: Name of the layer to select entities from
+            
+        Returns:
+            AutoCAD selection set
+            
+        Raises:
+            AutoCADConnectionError: If not connected
+            GenerationError: If selection fails
+        """
+        if not self.connection_manager.is_connected():
+            error_msg = "Not connected to AutoCAD"
+            self.logger.error(error_msg)
+            raise AutoCADConnectionError(error_msg, is_mock_mode=False)
+
+        try:
+            self.logger.debug(f"Selecting entities by layer: {layer_name}")
+
+            # Get document
+            doc = self.connection_manager.get_document()
+            if not doc:
+                raise AutoCADConnectionError("Document not available", is_mock_mode=False)
+
+            # Create a selection filter for the layer
+            # Filter format: [group code, operator, value]
+            # Group code 8 is for layer name
+            filter_type = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I4, [8])
+            filter_data = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, [layer_name])
+
+            # Perform the selection
+            # 5 = acSelectionSetAll - Select all entities matching filter
+            selection_set = doc.SelectionSets.Add(f"Layer_{layer_name}_{int(time.time())}")
+            selection_set.Select(5, None, None, filter_type, filter_data)
+
+            self.logger.debug(f"Selected {selection_set.Count} entities on layer '{layer_name}'")
+            return selection_set
+
+        except AutoCADConnectionError:
+            raise
+        except Exception as e:
+            error_msg = f"Failed to select entities by layer '{layer_name}': {str(e)}"
+            self.logger.error(error_msg, exc_info=True)
+            raise GenerationError(
+                error_msg,
+                geometry_type="selection",
+                operation="select_by_layer",
+                details={"layer_name": layer_name}
+            )
+
+    def send_command(self, command: str) -> None:
+        """
+        Send a command string to AutoCAD.
+        
+        Args:
+            command: Command string to send
+            
+        Raises:
+            AutoCADConnectionError: If not connected
+            GenerationError: If sending fails
+        """
+        if not self.connection_manager.is_connected():
+            error_msg = "Not connected to AutoCAD"
+            self.logger.error(error_msg)
+            raise AutoCADConnectionError(error_msg, is_mock_mode=False)
+
+        try:
+            self.logger.debug(f"Sending AutoCAD command: {command}")
+
+            # Get application
+            acad_app = self.connection_manager.get_application()
+            if not acad_app:
+                raise AutoCADConnectionError("Application not available", is_mock_mode=False)
+
+            # Send the command
+            acad_app.ActiveDocument.SendCommand(command + "\r")
+
+            self.logger.debug(f"AutoCAD command '{command}' sent successfully")
+
+        except AutoCADConnectionError:
+            raise
+        except Exception as e:
+            error_msg = f"Failed to send command '{command}': {str(e)}"
+            self.logger.error(error_msg, exc_info=True)
+            raise GenerationError(
+                error_msg,
+                geometry_type="command",
+                operation="send",
+                details={"command": command}
             )
 
     def _convert_to_variant_array(self, coordinates: tuple) -> Any:

@@ -424,13 +424,23 @@ class MasterStairOrchestrator:
             
             success = self._initialize_autocad(config)
             if not success:
+                self._notify_log("AutoCAD initialization failed")
                 return False
                 
             self._notify_progress(15.0)
             
             # Phase 3: Component generation
             self.current_phase = GenerationPhase.COMPONENT_GENERATION
-            return self._generate_components(config)
+            generation_success = self._generate_components(config)
+            
+            if generation_success:
+                self._notify_log("Stair generation completed successfully")
+                self.logger.info("Stair generation completed successfully")
+            else:
+                self._notify_log("Stair generation completed with errors")
+                self.logger.warning("Stair generation completed with errors")
+                
+            return generation_success
             
         except Exception as e:
             self.current_phase = GenerationPhase.FAILED
@@ -439,39 +449,135 @@ class MasterStairOrchestrator:
             self._notify_log(f"ERROR: {str(e)}")
             
             # Attempt cleanup
-            self._cleanup_failed_generation()
+            try:
+                self._cleanup_failed_generation()
+            except Exception as cleanup_error:
+                self.logger.error(f"Cleanup failed: {cleanup_error}")
+                self._notify_log(f"Cleanup failed: {str(cleanup_error)}")
+                
             return False
             
         finally:
             self.is_generating = False
             self.generation_stats['end_time'] = time.time()
             
+            # Log final statistics
+            total_time = self.generation_stats['end_time'] - self.generation_stats['start_time'] if self.generation_stats['end_time'] else 0
+            self.logger.info(f"Generation finished in {total_time:.2f} seconds")
+            self._notify_log(f"Generation finished in {total_time:.2f} seconds")
+            
     def _initialize_autocad(self, config: Dict[str, Any]) -> bool:
         """Initialize AutoCAD interface based on configuration."""
         try:
-            mock_mode = config.get('advanced_settings', {}).get('mock_mode', True)
+            mock_mode = config.get('advanced_settings', {}).get('mock_mode', False)  # Default to False now
+            
+            self._notify_log(f"Initializing AutoCAD interface... (Mock mode: {mock_mode})")
+            self.logger.info(f"Initializing AutoCAD interface... (Mock mode: {mock_mode})")
             
             if mock_mode:
-                self._notify_log("Initializing Mock AutoCAD interface...")
+                self._notify_log("Using Mock AutoCAD interface")
                 self.logger.info("Using Mock AutoCAD interface for generation")
             else:
-                self._notify_log("Connecting to AutoCAD...")
+                self._notify_log("Connecting to real AutoCAD interface")
                 self.logger.info("Connecting to real AutoCAD interface")
             
             # Create AutoCAD interface
+            self._notify_log("Creating AutoCAD interface...")
             self.autocad_interface = create_autocad_interface()
             
+            if not self.autocad_interface:
+                error_msg = "Failed to create AutoCAD interface"
+                self.logger.error(error_msg)
+                self._notify_log(f"ERROR: {error_msg}")
+                raise AutoCADConnectionError(error_msg)
+                
+            self._notify_log("AutoCAD interface created")
+            self.logger.debug("AutoCAD interface created successfully")
+            
             # Connect
+            self._notify_log("Connecting to AutoCAD...")
+            self.logger.debug("Attempting to connect to AutoCAD...")
             connected = self.autocad_interface.connect()
             if not connected:
-                raise AutoCADConnectionError("Failed to connect to AutoCAD interface")
+                error_msg = "Failed to connect to AutoCAD interface"
+                self.logger.error(error_msg)
+                self._notify_log(f"ERROR: {error_msg}")
+                raise AutoCADConnectionError(error_msg)
             
-            self._notify_log("AutoCAD connection established")
+            self._notify_log("AutoCAD connected successfully")
+            self.logger.debug("AutoCAD connected successfully")
+            
+            # Verify connection
+            self._notify_log("Verifying AutoCAD connection...")
+            self.logger.debug("Verifying AutoCAD connection...")
+            if not self.autocad_interface.is_connected():
+                error_msg = "AutoCAD interface reports not connected after connection attempt"
+                self.logger.error(error_msg)
+                self._notify_log(f"ERROR: {error_msg}")
+                raise AutoCADConnectionError(error_msg)
+                
+            self._notify_log("AutoCAD connection verified")
+            self.logger.debug("AutoCAD connection verified")
+            
+            # Create standard layers
+            self._notify_log("Creating standard layers...")
+            self.logger.debug("Creating standard layers...")
+            self._create_standard_layers()
+            
+            self._notify_log("AutoCAD initialization completed")
+            self.logger.info("AutoCAD initialization completed successfully")
             return True
             
         except Exception as e:
-            self.logger.error(f"AutoCAD initialization failed: {e}")
-            self._notify_log(f"AutoCAD connection failed: {str(e)}")
+            error_msg = f"AutoCAD initialization failed: {e}"
+            self.logger.error(error_msg, exc_info=True)
+            self._notify_log(f"AutoCAD initialization failed: {str(e)}")
+            raise
+            
+    def _create_standard_layers(self):
+        """Create standard layers with predefined colors."""
+        try:
+            self.logger.debug("Creating standard layers...")
+            self._notify_log("Creating standard layers...")
+            
+            # Check if AutoCAD interface is connected
+            if not self.autocad_interface:
+                raise AutoCADConnectionError("AutoCAD interface not initialized")
+                
+            if not self.autocad_interface.is_connected():
+                raise AutoCADConnectionError("AutoCAD interface not connected")
+            
+            # Define standard layers with names and colors (AutoCAD color indices)
+            standard_layers = {
+                "CENTERPOLE": 2,  # Yellow
+                "TREADS": 3,      # Green
+                "LANDINGS": 4,    # Cyan
+                "HANDRAILS": 5,   # Blue
+                "PICKETS": 1,     # Red
+                "POSTS": 6,       # Magenta
+            }
+            
+            layers_created = 0
+            # Create each layer
+            for layer_name, color_index in standard_layers.items():
+                try:
+                    self.logger.debug(f"Creating layer '{layer_name}' with color {color_index}")
+                    self.autocad_interface.create_layer(layer_name, color_index)
+                    self.logger.debug(f"Created layer '{layer_name}' with color {color_index}")
+                    layers_created += 1
+                except Exception as e:
+                    self.logger.warning(f"Failed to create layer '{layer_name}': {e}")
+                    self._notify_log(f"Warning: Failed to create layer '{layer_name}': {str(e)}")
+                    
+            self.logger.info(f"Standard layers creation completed. {layers_created}/{len(standard_layers)} layers created successfully")
+            self._notify_log(f"Created {layers_created}/{len(standard_layers)} standard layers")
+            
+        except Exception as e:
+            error_msg = f"Error creating standard layers: {e}"
+            self.logger.error(error_msg)
+            self._notify_log(f"ERROR: {error_msg}")
+            # This is not a critical failure, so we continue
+            # But let's not suppress this error completely
             raise
             
     def _generate_components(self, config: Dict[str, Any]) -> bool:

@@ -162,6 +162,11 @@ class VerticalPicketModule(BaseStairComponent):
                   f"Position: {position}")
             print(f"Target edge-to-edge spacing: {self.picket_spacing}\" (IBC compliant)")
 
+            # Set the PICKETS layer as active (assuming it's already created by the orchestrator)
+            print("Attempting to set active layer to PICKETS")
+            autocad_interface.set_active_layer("PICKETS")
+            print("Set active layer to PICKETS")
+
             # Generate vertical pickets using proven algorithm
             success = self._generate_vertical_pickets(
                 autocad_interface,
@@ -557,6 +562,21 @@ class VerticalPicketModule(BaseStairComponent):
                     print(f"  Warning: Failed to delete construction arc: {e}")
             
             print(f"  Deleted {deleted_count} construction arcs")
+            
+            # Perform batch JOIN operation on all entities on the PICKETS layer
+            print(f"\nPERFORMING BATCH JOIN OPERATION:")
+            try:
+                # Select all entities on the PICKETS layer
+                selection_set = autocad_interface.select_entities_by_layer("PICKETS")
+                
+                # Send the JOIN command to AutoCAD
+                # Note: In AutoCAD, the JOIN command works on the current selection
+                autocad_interface.send_command("JOIN")
+                
+                print(f"  Batch JOIN operation completed successfully")
+            except Exception as e:
+                print(f"  Warning: Batch JOIN operation failed: {e}")
+                # This is not a critical failure, so we continue
             
             return True
             

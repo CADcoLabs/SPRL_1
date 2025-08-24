@@ -98,6 +98,26 @@ class AutoCADInterface(ABC):
         """Add linear dimension between two points."""
         pass
 
+    @abstractmethod
+    def create_layer(self, layer_name: str, color: int = 7) -> Any:
+        """Create a new layer with the specified name and color."""
+        pass
+
+    @abstractmethod
+    def set_active_layer(self, layer_name: str) -> None:
+        """Set the active layer by name."""
+        pass
+
+    @abstractmethod
+    def select_entities_by_layer(self, layer_name: str) -> Any:
+        """Select all entities on the specified layer."""
+        pass
+
+    @abstractmethod
+    def send_command(self, command: str) -> None:
+        """Send a command string to AutoCAD."""
+        pass
+
 
 class MockAutoCADInterface(AutoCADInterface):
     """
@@ -557,6 +577,89 @@ class MockAutoCADInterface(AutoCADInterface):
                 operation="create"
             )
 
+    def create_layer(self, layer_name: str, color: int = 7) -> Dict[str, Any]:
+        """Create a new layer with the specified name and color."""
+        try:
+            self.logger.debug(f"Creating mock layer: {layer_name} with color {color}")
+            
+            # In mock mode, we'll just track layers in a dictionary
+            if not hasattr(self, '_layers'):
+                self._layers = {}
+                
+            layer = {
+                "name": layer_name,
+                "color": color,
+                "id": len(self._layers) + 1
+            }
+            
+            self._layers[layer_name] = layer
+            self.logger.debug(f"Mock layer '{layer_name}' created successfully")
+            return layer
+            
+        except Exception as e:
+            self.logger.error(f"Mock layer creation failed: {str(e)}", exc_info=True)
+            raise GenerationError(
+                f"Failed to create mock layer '{layer_name}': {str(e)}",
+                geometry_type="layer",
+                operation="create"
+            )
+
+    def set_active_layer(self, layer_name: str) -> None:
+        """Set the active layer by name."""
+        try:
+            self.logger.debug(f"Setting active layer to: {layer_name}")
+            
+            # In mock mode, just store the active layer name
+            self.current_layer = layer_name
+            self.logger.debug(f"Active layer set to '{layer_name}'")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to set active layer '{layer_name}': {str(e)}", exc_info=True)
+            raise GenerationError(
+                f"Failed to set active layer '{layer_name}': {str(e)}",
+                geometry_type="layer",
+                operation="set_active"
+            )
+
+    def select_entities_by_layer(self, layer_name: str) -> List[Dict[str, Any]]:
+        """Select all entities on the specified layer."""
+        try:
+            self.logger.debug(f"Selecting entities by layer: {layer_name}")
+            
+            # In mock mode, filter entities by layer
+            selected_entities = [
+                entity for entity in self.entities 
+                if entity.get("layer") == layer_name
+            ]
+            
+            self.logger.debug(f"Selected {len(selected_entities)} entities on layer '{layer_name}'")
+            return selected_entities
+            
+        except Exception as e:
+            self.logger.error(f"Failed to select entities by layer '{layer_name}': {str(e)}", exc_info=True)
+            raise GenerationError(
+                f"Failed to select entities by layer '{layer_name}': {str(e)}",
+                geometry_type="selection",
+                operation="select_by_layer"
+            )
+
+    def send_command(self, command: str) -> None:
+        """Send a command string to AutoCAD."""
+        try:
+            self.logger.debug(f"Sending mock command: {command}")
+            
+            # In mock mode, just log the command
+            self.last_operation = f"Sent command: {command}"
+            self.logger.debug(f"Mock command '{command}' sent successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to send command '{command}': {str(e)}", exc_info=True)
+            raise GenerationError(
+                f"Failed to send command '{command}': {str(e)}",
+                geometry_type="command",
+                operation="send"
+            )
+
     def get_entities(self) -> List[Dict[str, Any]]:
         """Get all created entities for testing."""
         return self.entities.copy()
@@ -634,6 +737,22 @@ class RealAutoCADInterface(AutoCADInterface):
     def add_dimension(self, point1: tuple, point2: tuple, dimension_line_point: tuple, text: str = None) -> Any:
         """Add dimension using entity manipulator."""
         return self.entity_manipulator.add_dimension(point1, point2, dimension_line_point, text)
+
+    def create_layer(self, layer_name: str, color: int = 7) -> Any:
+        """Create a new layer with the specified name and color."""
+        return self.entity_manipulator.create_layer(layer_name, color)
+
+    def set_active_layer(self, layer_name: str) -> None:
+        """Set the active layer by name."""
+        self.entity_manipulator.set_active_layer(layer_name)
+
+    def select_entities_by_layer(self, layer_name: str) -> Any:
+        """Select all entities on the specified layer."""
+        return self.entity_manipulator.select_entities_by_layer(layer_name)
+
+    def send_command(self, command: str) -> None:
+        """Send a command string to AutoCAD."""
+        self.entity_manipulator.send_command(command)
 
     def connect(self) -> bool:
         """

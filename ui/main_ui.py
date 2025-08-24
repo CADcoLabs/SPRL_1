@@ -2441,8 +2441,10 @@ by Barry Adams 2025
 def main():
     """Main application entry point."""
     # Only set mock mode if not already set (allow override)
+    # Default to false to use real AutoCAD for production use
+    # Set to true for development/testing without AutoCAD installation
     if 'AUTOCAD_MOCK_MODE' not in os.environ:
-        os.environ['AUTOCAD_MOCK_MODE'] = 'true'
+        os.environ['AUTOCAD_MOCK_MODE'] = 'false'
     
     # Create main window
     root = tk.Tk()

@@ -66,6 +66,8 @@ class AutoCADConnectionManager:
         """
         for attempt in range(self.max_retries):
             try:
+                self.logger.debug(f"AutoCAD connection attempt {attempt + 1}/{self.max_retries}")
+                
                 # Initialize COM in this thread if needed
                 try:
                     pythoncom.CoInitialize()
@@ -75,23 +77,35 @@ class AutoCADConnectionManager:
 
                 # Try to get running AutoCAD instance first
                 try:
+                    self.logger.debug("Attempting to connect to running AutoCAD instance...")
                     self.acad_app = win32com.client.GetActiveObject("AutoCAD.Application")
                     self.logger.info("Connected to existing AutoCAD instance")
                 except Exception as get_active_error:
-                    # Start new AutoCAD instance
                     self.logger.debug(f"No active AutoCAD instance found: {str(get_active_error)}")
+                    # Start new AutoCAD instance
                     self.logger.info("Starting new AutoCAD instance...")
-                    self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
-                    self.logger.info("Started new AutoCAD instance")
+                    try:
+                        self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
+                        self.logger.info("Started new AutoCAD instance")
+                    except Exception as dispatch_error:
+                        self.logger.error(f"Failed to start new AutoCAD instance: {str(dispatch_error)}")
+                        raise
 
                 # Make AutoCAD visible
-                self.acad_app.Visible = True
-                self.logger.debug("AutoCAD visibility set to True")
+                try:
+                    self.acad_app.Visible = True
+                    self.logger.debug("AutoCAD visibility set to True")
+                except Exception as visible_error:
+                    self.logger.warning(f"Failed to set AutoCAD visibility: {visible_error}")
 
                 # Get active document
-                self.acad_doc = self.acad_app.ActiveDocument
-                self.logger.debug("Active document retrieved")
-                
+                try:
+                    self.acad_doc = self.acad_app.ActiveDocument
+                    self.logger.debug("Active document retrieved")
+                except Exception as doc_error:
+                    self.logger.error(f"Failed to get active document: {doc_error}")
+                    raise
+
                 # Get ModelSpace with error handling
                 try:
                     self.model_space = self.acad_doc.ModelSpace
@@ -115,8 +129,13 @@ class AutoCADConnectionManager:
                             raise Exception(f"Cannot access ModelSpace: {ms_error}")
 
                 # Test the connection by accessing a property
-                version = self.acad_app.Version
-                self.logger.info(f"Connected to AutoCAD version: {version}")
+                try:
+                    version = self.acad_app.Version
+                    self.logger.info(f"Connected to AutoCAD version: {version}")
+                except Exception as version_error:
+                    self.logger.error(f"Failed to get AutoCAD version: {version_error}")
+                    raise
+
                 self.logger.info(f"AutoCAD connection successful on attempt {attempt + 1}")
                 return True
 
