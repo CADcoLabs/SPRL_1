@@ -124,6 +124,9 @@ class HandrailModule(BaseStairComponent):
             bool: True if generation successful
         """
         try:
+            # Set active layer to HANDRAILS before creating any handrail entities
+            autocad_interface.set_active_layer("HANDRAILS")
+            
             handrail_config = config.get("handrail_configuration", {})
 
             # Check if handrails are enabled

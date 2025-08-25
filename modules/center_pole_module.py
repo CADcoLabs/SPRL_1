@@ -16,7 +16,7 @@ class CenterPoleModule(BaseStairComponent):
     - Creates cylinder at origin (0,0,0)
     - Diameter from configuration
     - Height matches overall stair height
-    - Color 251 (same as VBA)
+    - Color handled by layer (CENTERPOLE layer)
     - Positioned with center at Z = height/2
     """
 
@@ -71,7 +71,7 @@ class CenterPoleModule(BaseStairComponent):
 
         Recreates the exact VBA logic:
         1. Create cylinder at origin with specified diameter and height
-        2. Set color to 251 (matching VBA)
+        2. Color handled by layer (CENTERPOLE layer)
         3. Transform to position center at Z = height/2
 
         Args:
@@ -100,6 +100,9 @@ class CenterPoleModule(BaseStairComponent):
             # Center point needs to be at Z = pole_height / 2
             center_point = (0.0, 0.0, pole_height / 2.0)
 
+            # Set active layer to CENTERPOLE before creating entities
+            autocad_interface.set_active_layer("CENTERPOLE")
+            
             # Create center pole as a 3D solid (like treads do)
             if hasattr(autocad_interface, "entities"):  # Mock interface
                 # For mock, create simplified representation
@@ -129,9 +132,7 @@ class CenterPoleModule(BaseStairComponent):
             # Store created entity for cleanup if needed
             self._created_entities = [pole]
 
-            # Set color to 251 (matching VBA)
-            if hasattr(pole, "color"):
-                pole.color = 251
+            # Color is set by layer (CENTERPOLE layer), no individual color assignment needed
 
             # Store geometry parameters for get_geometry_info()
             self.diameter = center_pole_diameter
@@ -206,7 +207,7 @@ class CenterPoleModule(BaseStairComponent):
             "center_z": getattr(self, 'center_z', 0.0),
             "bottom_z": getattr(self, 'bottom_z', 0.0),
             "top_z": getattr(self, 'top_z', 0.0),
-            "color": 251,
+            "color": "ByLayer",
             "position": "bottom_at_z_zero",
             "note": "Center pole positioned with bottom at Z=0, height = overall_height",
         }

@@ -103,6 +103,9 @@ class LandingModule(BaseStairComponent):
             bool: True if generation successful
         """
         try:
+            # Set active layer to LANDINGS before creating any landing entities
+            autocad_interface.set_active_layer("LANDINGS")
+            
             basic_params = config.get("basic_parameters", {})
 
             # Extract parameters

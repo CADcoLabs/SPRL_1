@@ -549,12 +549,12 @@ class MasterStairOrchestrator:
             
             # Define standard layers with names and colors (AutoCAD color indices)
             standard_layers = {
-                "CENTERPOLE": 2,  # Yellow
-                "TREADS": 3,      # Green
-                "LANDINGS": 4,    # Cyan
-                "HANDRAILS": 5,   # Blue
-                "PICKETS": 1,     # Red
-                "POSTS": 6,       # Magenta
+                "CENTERPOLE": 252,  # Color 252
+                "TREADS": 254,      # Color 254
+                "LANDINGS": 143,    # Color 143
+                "HANDRAILS": 130,   # Color 130
+                "PICKETS": 253,     # Color 253
+                "POSTS": 6,         # Magenta
             }
             
             layers_created = 0

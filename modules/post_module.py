@@ -98,6 +98,9 @@ class PostModule(BaseStairComponent):
             bool: True if generation successful
         """
         try:
+            # Set active layer to POSTS before creating any post entities
+            autocad_interface.set_active_layer("POSTS")
+            
             post_config = config.get("post_configuration", {})
 
             # Check if posts are enabled

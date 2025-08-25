@@ -28,7 +28,7 @@ class TreadModule(BaseStairComponent):
     - Sector shape (pie slice) from center pole to outside diameter
     - 0.25" thickness (standard tread depth)
     - Proper height positioning based on riser height
-    - Color coding (251 for normal treads, 1 for mid-landing treads)
+    - Color handled by layer (TREADS layer)
     """
 
     def __init__(self):
@@ -107,6 +107,9 @@ class TreadModule(BaseStairComponent):
             bool: True if generation successful
         """
         try:
+            # Set active layer to TREADS before creating any tread entities
+            autocad_interface.set_active_layer("TREADS")
+            
             basic_params = config.get("basic_parameters", {})
 
             # Extract parameters
@@ -183,17 +186,15 @@ class TreadModule(BaseStairComponent):
                 if i == self.mid_landing_index:
                     # Mid-landing tread: 90-degree sector
                     end_angle = current_angle + direction * math.radians(90)
-                    tread_color = 1  # Red color for mid-landing
                     print(
                         f'Creating mid-landing tread {i + 1} at height {tread_height:.2f}"'
                     )
                 else:
                     # Normal tread: calculated angle
                     end_angle = current_angle + math.radians(signed_tread_angle)
-                    tread_color = 251  # Standard color for normal treads
                     print(f'Creating tread {i + 1} at height {tread_height:.2f}"')
 
-                # Create the tread geometry
+                # Create the tread geometry (color handled by layer)
                 success = self._create_sector_tread(
                     autocad_interface,
                     current_angle,
@@ -201,7 +202,6 @@ class TreadModule(BaseStairComponent):
                     inner_radius,
                     outer_radius,
                     tread_height,
-                    tread_color,
                     is_clockwise,
                 )
 
@@ -213,7 +213,6 @@ class TreadModule(BaseStairComponent):
                             "end_angle": math.degrees(end_angle),
                             "height": tread_height,
                             "is_mid_landing": i == self.mid_landing_index,
-                            "color": tread_color,
                         }
                     )
                     current_angle = end_angle
@@ -253,7 +252,6 @@ class TreadModule(BaseStairComponent):
         inner_radius: float,
         outer_radius: float,
         tread_height: float,
-        tread_color: int,
         is_clockwise: bool = True,
     ) -> bool:
         """
@@ -267,7 +265,6 @@ class TreadModule(BaseStairComponent):
             inner_radius: Inner radius (center pole edge)
             outer_radius: Outer radius (outside diameter)
             tread_height: Z-height for tread placement
-            tread_color: AutoCAD color index
             is_clockwise: Direction of rotation
 
         Returns:
@@ -286,7 +283,6 @@ class TreadModule(BaseStairComponent):
                 )
                 arc["inner_radius"] = inner_radius
                 arc["tread_height"] = tread_height
-                arc["color"] = tread_color
                 arc["thickness"] = 0.25
 
                 # Add lines to show sector boundaries
@@ -361,9 +357,7 @@ class TreadModule(BaseStairComponent):
                         # Extrude the region to create 3D solid (0.25" thick)
                         tread_solid = autocad_interface.create_extruded_solid(region_obj, 0.25, 0)
                         
-                        # Set color if this is real AutoCAD (mock interface handles this automatically)
-                        if hasattr(tread_solid, 'color'):
-                            tread_solid.color = tread_color
+                        # Color is set by layer (TREADS layer), no individual color assignment needed
                         
                         # Store for cleanup
                         if not hasattr(self, '_created_entities'):
@@ -510,10 +504,7 @@ class TreadModule(BaseStairComponent):
             if tread_height + 0.25 > basic_params.get("overall_height", 120.0):
                 tread_height = basic_params.get("overall_height", 120.0) - 0.25
                 
-            # Determine color
-            tread_color = 1 if index == self.mid_landing_index else 251
-            
-            # Create the tread
+            # Create the tread (color handled by layer)
             success = self._create_sector_tread(
                 autocad_interface,
                 start_angle,
@@ -521,7 +512,6 @@ class TreadModule(BaseStairComponent):
                 inner_radius,
                 outer_radius,
                 tread_height,
-                tread_color,
                 is_clockwise,
             )
             
@@ -533,7 +523,6 @@ class TreadModule(BaseStairComponent):
                     "end_angle": math.degrees(end_angle),
                     "height": tread_height,
                     "is_mid_landing": index == self.mid_landing_index,
-                    "color": tread_color,
                 }
                 self.treads_created.insert(index, new_tread)
                 
@@ -676,10 +665,7 @@ class TreadModule(BaseStairComponent):
                 if tread_height + 0.25 > basic_params.get("overall_height", 120.0):
                     tread_height = basic_params.get("overall_height", 120.0) - 0.25
             
-            # Determine color
-            tread_color = 1 if index == self.mid_landing_index else 251
-            
-            # Create the modified tread
+            # Create the modified tread (color handled by layer)
             success = self._create_sector_tread(
                 autocad_interface,
                 start_angle,
@@ -687,7 +673,6 @@ class TreadModule(BaseStairComponent):
                 inner_radius,
                 outer_radius,
                 tread_height,
-                tread_color,
                 is_clockwise,
             )
             
@@ -699,7 +684,6 @@ class TreadModule(BaseStairComponent):
                     "end_angle": math.degrees(end_angle),
                     "height": tread_height,
                     "is_mid_landing": index == self.mid_landing_index,
-                    "color": tread_color,
                 }
                 self.treads_created.insert(index, modified_tread)
                 
@@ -760,9 +744,6 @@ class TreadModule(BaseStairComponent):
                 if tread_height + 0.25 > basic_params.get("overall_height", 120.0):
                     tread_height = basic_params.get("overall_height", 120.0) - 0.25
                 
-                # Determine color
-                tread_color = 1 if i == self.mid_landing_index else 251
-                
                 # Remove old tread entity
                 if hasattr(autocad_interface, 'model_space') and hasattr(self, '_created_entities'):
                     try:
@@ -773,7 +754,7 @@ class TreadModule(BaseStairComponent):
                     except Exception as e:
                         print(f"Warning: Could not remove old tread entity: {str(e)}")
                 
-                # Create new tread
+                # Create new tread (color handled by layer)
                 success = self._create_sector_tread(
                     autocad_interface,
                     start_angle,
@@ -781,7 +762,6 @@ class TreadModule(BaseStairComponent):
                     inner_radius,
                     outer_radius,
                     tread_height,
-                    tread_color,
                     is_clockwise,
                 )
                 
@@ -793,7 +773,6 @@ class TreadModule(BaseStairComponent):
                         "end_angle": math.degrees(end_angle),
                         "height": tread_height,
                         "is_mid_landing": i == self.mid_landing_index,
-                        "color": tread_color,
                     }
                 else:
                     print(f"Failed to recalculate tread at index {i}")

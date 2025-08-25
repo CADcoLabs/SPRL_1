@@ -110,6 +110,9 @@ class PicketModule(BaseStairComponent):
             bool: True if generation successful
         """
         try:
+            # Set active layer to PICKETS before creating any picket entities
+            autocad_interface.set_active_layer("PICKETS")
+            
             # Get picket configuration
             picket_config = config.get("picket_configuration", {})
             basic_params = config.get("basic_parameters", {})
