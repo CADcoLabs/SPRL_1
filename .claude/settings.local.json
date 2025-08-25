@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(./python/python.exe get-pip.py)",
+      "Bash(./Validate_Package.bat)",
+      "Bash(python:*)",
+      "Bash(./python/python.exe -c \"import tkinter; print(''tkinter working!'')\")"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\barrya\\source\\repos",
+      "C:\\c\\Program Files\\Python312\\Lib",
+      "C:\\c\\Program Files\\Python312\\DLLs"
+    ]
+  }
+}

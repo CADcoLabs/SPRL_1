@@ -56,8 +56,10 @@ logs/
 # Project-specific folders (as per CLAUDE.md)
 DELETED/
 TEMP/
-docs/
 OriginalVBA/
+
+# Spiral plugin folder
+spiral_plugin/
 
 # AutoCAD temporary files
 *.dwl
