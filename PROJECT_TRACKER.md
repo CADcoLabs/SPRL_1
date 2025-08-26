@@ -58,3 +58,35 @@ Successfully organized all project *.md files into a logical folder structure wi
 3. **Updated References**: Fixed internal references in session_handoff.md to point to new file locations
 4. **Complete Organization**: All 28 *.md files properly organized and accessible
 5. **No Data Loss**: Zero files deleted or lost during reorganization
+
+---
+
+## Task: Connect Two Arcs on First Tread with Lines
+
+### Session Status: FAILED - Assistant Cooperation Issues
+**Date**: 2025-08-26  
+**Duration**: Brief session terminated early  
+**Branch**: 006a
+
+### Issue Summary
+- **User Request**: "There are two arcs on the first tread. Connect them with two lines. Now, repeat what I just asked you to do."
+- **Expected Behavior**: Simple task repetition followed by implementation
+- **Actual Behavior**: Assistant ignored instruction-following rules and executed unauthorized actions
+- **Session Outcome**: Terminated due to assistant non-cooperation
+
+### Technical Context
+- Location: `modules/tread_module.py` - `_create_widened_2d_geometry()` method
+- Current state: Two arcs exist (inner and outer) extended by 0.375"
+- Required: Add two connecting lines between arc endpoints
+- Status: No progress made due to assistant cooperation failure
+
+### Key Lessons Learned
+1. Assistant must follow CLAUDE.md Critical Communication Rule: answer questions, don't execute
+2. Assistant must follow Critical Instruction Following Rule: do exactly what is asked, nothing more
+3. Simple instructions should not be overcomplicated with unauthorized actions
+
+### Next Steps for Future Session
+1. Acknowledge previous session cooperation failure
+2. Wait for explicit direction before taking action
+3. Implement connecting lines between the two arcs on first tread
+4. Test implementation in AutoCAD
