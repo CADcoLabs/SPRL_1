@@ -296,11 +296,33 @@ class LandingModule(BaseStairComponent):
                 line4 = autocad_interface.create_line(start_pt, end_pt)
                 line4["landing_component"] = f"{landing_type}_landing_line_3"
 
+                # Create a mock extruded solid for consistency with real AutoCAD
+                mock_solid = autocad_interface.create_extruded_solid(
+                    profile={
+                        "type": "rectangular_landing",
+                        "corners": [
+                            (0.0, 0.0, landing_height),
+                            (landing_length * math.cos(current_angle), 
+                             landing_length * math.sin(current_angle), 
+                             landing_height),
+                            (landing_length * math.cos(current_angle) + landing_width * math.cos(current_angle + (math.pi / 2) * direction),
+                             landing_length * math.sin(current_angle) + landing_width * math.sin(current_angle + (math.pi / 2) * direction),
+                             landing_height),
+                            (landing_width * math.cos(current_angle + (math.pi / 2) * direction),
+                             landing_width * math.sin(current_angle + (math.pi / 2) * direction),
+                             landing_height)
+                        ]
+                    },
+                    height=-0.25,  # Negative height for downward extrusion
+                    taper_angle=0
+                )
+                mock_solid["landing_component"] = f"{landing_type}_landing_solid"
+                
                 print(
-                    f"Mock AutoCAD: Created {landing_type} landing at Z={landing_height:.2f}, angle={math.degrees(current_angle):.1f}°"
+                    f"Mock AutoCAD: Created 3D {landing_type} landing solid at Z={landing_height:.2f}, extruded down 0.25\", angle={math.degrees(current_angle):.1f}°"
                 )
                 print(
-                    f'Mock AutoCAD: Landing dimensions: {landing_length:.1f}" × {landing_width:.1f}"'
+                    f'Mock AutoCAD: Landing dimensions: {landing_length:.1f}" × {landing_width:.1f}" × 0.25" thick'
                 )
                 return True
             else:
@@ -377,16 +399,48 @@ class LandingModule(BaseStairComponent):
                     # Set the elevation (Z-coordinate) for the polyline
                     polyline.Elevation = landing_height
                     
-                    # Store for cleanup
-                    if not hasattr(self, '_created_entities'):
-                        self._created_entities = []
-                    self._created_entities.append(polyline)
+                    # Create region from the closed polyline for extrusion
+                    region_objects = win32com.client.VARIANT(
+                        pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH,
+                        [polyline]
+                    )
+                    regions = autocad_interface.model_space.AddRegion(region_objects)
+                    
+                    # Delete the original polyline since we now have the region
+                    polyline.Delete()
+                    
+                    if regions and len(regions) > 0:
+                        region_obj = regions[0]
+                        
+                        # Extrude the region downward by 0.25 inches
+                        # Negative height for downward extrusion
+                        landing_solid = autocad_interface.create_extruded_solid(region_obj, -0.25, 0)
+                        
+                        if landing_solid:
+                            landing_solid.color = 3  # Color 3 for landings
+                            
+                            # Store the solid for cleanup
+                            if not hasattr(self, '_created_entities'):
+                                self._created_entities = []
+                            self._created_entities.append(landing_solid)
+                        else:
+                            raise GenerationError(
+                                "Failed to create extruded solid from region",
+                                geometry_type="landing_solid",
+                                operation="extrude"
+                            )
+                    else:
+                        raise GenerationError(
+                            "Failed to create region from polyline",
+                            geometry_type="landing_region", 
+                            operation="create_region"
+                        )
                     
                     print(
-                        f"Real AutoCAD: Created {landing_type} landing at Z={landing_height:.2f}, angle={math.degrees(current_angle):.1f}°"
+                        f"Real AutoCAD: Created 3D {landing_type} landing solid at Z={landing_height:.2f}, extruded down 0.25\", angle={math.degrees(current_angle):.1f}°"
                     )
                     print(
-                        f'Real AutoCAD: Landing dimensions: {landing_length:.1f}" × {landing_width:.1f}"'
+                        f'Real AutoCAD: Landing dimensions: {landing_length:.1f}" × {landing_width:.1f}" × 0.25" thick'
                     )
                     return True
                     

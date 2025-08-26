@@ -325,3 +325,17 @@ Examples:
 **"The ugliest truth is prettier than the most beautiful lie."**
 
 The assistant must ALWAYS tell the truth about what it has done, what it is doing, and what it knows or doesn't know. No exceptions. Dishonesty destroys trust irreparably, while even painful truths preserve the foundation for working together effectively.
+
+## Critical Instruction Following Rule
+
+**DO NOT OVERTHINK OR CONVERT SIMPLE INSTRUCTIONS**
+
+When the user gives specific measurements or instructions:
+- 0.375" means 0.375 inches LINEAR distance, NOT angular conversion
+- "Extend by 0.375"" means exactly 0.375" extension, not calculated angular amounts
+- Simple geometric instructions should be implemented exactly as stated
+- Do not convert linear measurements to angular unless explicitly requested
+- Follow instructions precisely without adding unnecessary complexity or "improvements"
+
+**Example of WRONG approach**: Converting 0.375" to angular extension based on radius calculations
+**Example of RIGHT approach**: Extending each arc by exactly 0.375" linear distance at each end

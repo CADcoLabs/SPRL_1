@@ -5,7 +5,8 @@
       "Bash(./python/python.exe get-pip.py)",
       "Bash(./Validate_Package.bat)",
       "Bash(python:*)",
-      "Bash(./python/python.exe -c \"import tkinter; print(''tkinter working!'')\")"
+      "Bash(./python/python.exe -c \"import tkinter; print(''tkinter working!'')\")",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": [],

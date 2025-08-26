@@ -6,7 +6,8 @@
     "total_rotation": 450.0,
     "is_clockwise": true,
     "mid_landing_enabled": false,
-    "mid_landing_tread_index": -1
+    "mid_landing_tread_index": -1,
+    "keep_original_tread_geometry": false
   },
   "compliance_settings": {
     "ibc_compliance_enabled": true,

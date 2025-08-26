@@ -73,6 +73,11 @@ class ConfigManager:
                             "description": "Zero-based index of tread to become mid-landing (-1 = disabled)",
                             "default": -1,
                         },
+                        "keep_original_tread_geometry": {
+                            "type": "boolean",
+                            "description": "Keep original tread geometry for reference when creating widened treads",
+                            "default": False,
+                        },
                     },
                     "required": [
                         "center_pole_diameter",
@@ -380,6 +385,7 @@ class ConfigManager:
                 "outside_diameter": 72.0,
                 "total_rotation": 450.0,
                 "is_clockwise": True,
+                "keep_original_tread_geometry": False,
             },
             "compliance_settings": {
                 "ibc_compliance_enabled": True,
