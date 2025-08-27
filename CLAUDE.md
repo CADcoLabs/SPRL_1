@@ -158,6 +158,11 @@ The handrail module contains incorrect import paths using `src.core.*` instead o
 - **NEVER delete files or folders** - always move them to `DELETED/` folder instead
 - The `DELETED/` folder is gitignored to prevent committing deleted content
 
+### Location-Specific Files
+- **DeployToNetwork.bat** - Local deployment script, must remain untracked (location-specific)
+- **network_path.config** - Local network configuration, must remain untracked (location-specific)
+- These files are essential for local operations but should never be committed as they contain environment-specific paths and configurations
+
 ### Repository Migration Guidelines
 - **Update all documentation encountered** during project activities to reflect current repository status
 - Remove references to old branch names (UI_02d, picket_module_01, etc.) and replace with `main` branch
