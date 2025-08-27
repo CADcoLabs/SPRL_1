@@ -430,8 +430,8 @@ class TreadModule(BaseStairComponent):
             outer_extended_start = start_angle - outer_angular_extension
             outer_extended_end = end_angle + outer_angular_extension
             
-            # Use tread_height + 1.25 to put geometry at correct height
-            geometry_height = tread_height + 1.25
+            # Use tread_height to put geometry at same height as first tread
+            geometry_height = tread_height
             
             print(f"Creating extended arcs at height {geometry_height:.2f}")
             print(f"Original: {math.degrees(start_angle):.1f}° to {math.degrees(end_angle):.1f}°")
@@ -485,11 +485,79 @@ class TreadModule(BaseStairComponent):
             # Create the second connecting line on the Geometry layer
             autocad_interface.create_line(line2_start_point, line2_end_point)
             
-            # Switch back to TREADS layer
+            # Add vertical lines at each end of the small arc that extend downward by 3"
+            # First vertical line at the start of the small arc
+            vertical_line1_start = (
+                inner_radius * math.cos(inner_extended_start),
+                inner_radius * math.sin(inner_extended_start),
+                geometry_height
+            )
+            vertical_line1_end = (
+                inner_radius * math.cos(inner_extended_start),
+                inner_radius * math.sin(inner_extended_start),
+                geometry_height - 3.0  # 3" downward
+            )
+            autocad_interface.create_line(vertical_line1_start, vertical_line1_end)
+            
+            # Second vertical line at the end of the small arc
+            vertical_line2_start = (
+                inner_radius * math.cos(inner_extended_end),
+                inner_radius * math.sin(inner_extended_end),
+                geometry_height
+            )
+            vertical_line2_end = (
+                inner_radius * math.cos(inner_extended_end),
+                inner_radius * math.sin(inner_extended_end),
+                geometry_height - 3.0  # 3" downward
+            )
+            autocad_interface.create_line(vertical_line2_start, vertical_line2_end)
+            
+            # Add two lines that begin at each end of the other arc to extend downward by 2"
+            # First vertical line at the start of the outer arc
+            outer_vertical_line1_start = (
+                outer_radius * math.cos(outer_extended_start),
+                outer_radius * math.sin(outer_extended_start),
+                geometry_height
+            )
+            outer_vertical_line1_end = (
+                outer_radius * math.cos(outer_extended_start),
+                outer_radius * math.sin(outer_extended_start),
+                geometry_height - 2.0  # 2" downward
+            )
+            autocad_interface.create_line(outer_vertical_line1_start, outer_vertical_line1_end)
+            
+            # Second vertical line at the end of the outer arc
+            outer_vertical_line2_start = (
+                outer_radius * math.cos(outer_extended_end),
+                outer_radius * math.sin(outer_extended_end),
+                geometry_height
+            )
+            outer_vertical_line2_end = (
+                outer_radius * math.cos(outer_extended_end),
+                outer_radius * math.sin(outer_extended_end),
+                geometry_height - 2.0  # 2" downward
+            )
+            autocad_interface.create_line(outer_vertical_line2_start, outer_vertical_line2_end)
+            
+            # Add two lines connecting the bottom of the 3" vertical lines to the 2" vertical lines
+            # First connecting line (from bottom of first 3" line to bottom of first 2" line)
+            connecting_line1_start = vertical_line1_end
+            connecting_line1_end = outer_vertical_line1_end
+            autocad_interface.create_line(connecting_line1_start, connecting_line1_end)
+            
+            # Second connecting line (from bottom of second 3" line to bottom of second 2" line)
+            connecting_line2_start = vertical_line2_end
+            connecting_line2_end = outer_vertical_line2_end
+            autocad_interface.create_line(connecting_line2_start, connecting_line2_end)
+            
+            # Switch back to TREADS layer for remaining treads
             autocad_interface.set_active_layer("TREADS")
             
             print("Created extended arcs: 2 arcs extended by 0.375\" at each end on Geometry layer (yellow)")
             print("Added two connecting lines between endpoints of outer and inner arcs at both extended angles")
+            print("Added two vertical lines at each end of the small arc extending downward by 3\"")
+            print("Added two vertical lines at each end of the outer arc extending downward by 2\"")
+            print("Added two connecting lines between the bottom of the 3\" and 2\" vertical lines")
             return True
             
         except Exception as e:
