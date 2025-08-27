@@ -452,10 +452,44 @@ class TreadModule(BaseStairComponent):
                 (0.0, 0.0, geometry_height), inner_radius, inner_extended_start, inner_extended_end
             )
             
+            # Add lines connecting the endpoints of the two arcs on the first tread only
+            # First line: connecting at the extended start angle
+            line1_start_point = (
+                outer_radius * math.cos(outer_extended_start),
+                outer_radius * math.sin(outer_extended_start),
+                geometry_height
+            )
+            
+            line1_end_point = (
+                inner_radius * math.cos(inner_extended_start),
+                inner_radius * math.sin(inner_extended_start),
+                geometry_height
+            )
+            
+            # Create the first connecting line on the Geometry layer
+            autocad_interface.create_line(line1_start_point, line1_end_point)
+            
+            # Second line: connecting at the extended end angle
+            line2_start_point = (
+                outer_radius * math.cos(outer_extended_end),
+                outer_radius * math.sin(outer_extended_end),
+                geometry_height
+            )
+            
+            line2_end_point = (
+                inner_radius * math.cos(inner_extended_end),
+                inner_radius * math.sin(inner_extended_end),
+                geometry_height
+            )
+            
+            # Create the second connecting line on the Geometry layer
+            autocad_interface.create_line(line2_start_point, line2_end_point)
+            
             # Switch back to TREADS layer
             autocad_interface.set_active_layer("TREADS")
             
             print("Created extended arcs: 2 arcs extended by 0.375\" at each end on Geometry layer (yellow)")
+            print("Added two connecting lines between endpoints of outer and inner arcs at both extended angles")
             return True
             
         except Exception as e:
