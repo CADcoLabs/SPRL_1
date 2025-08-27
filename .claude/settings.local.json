@@ -6,7 +6,14 @@
       "Bash(./Validate_Package.bat)",
       "Bash(python:*)",
       "Bash(./python/python.exe -c \"import tkinter; print(''tkinter working!'')\")",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(C:UsersAdamsLaptopAppDataRoamingPythonPython313Scriptsomnara.exe --help)",
+      "Bash(\"C:\\Users\\AdamsLaptop\\AppData\\Roaming\\Python\\Python313\\Scripts\\omnara.exe\" --help)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(\"C:\\Users\\AdamsLaptop\\AppData\\Roaming\\Python\\Python313\\Scripts\\omnara.exe\" --api-key \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ODliMDY2MC1jNzU1LTQ1OGYtYWRhNy1lZGYwNjIyYzQ1NzgiLCJpYXQiOjE3NTYyNDY4ODF9.xgqSLJiBkEHfFabyhb2bLQjgMLkPwfZJGC0fT9n9F1qhiZ4-9lQPTV4OOFNNEr66t5-Tgn2jWtzU6OG5xyIxlg\" serve --no-tunnel)",
+      "Bash(where git)",
+      "Bash(git --version)"
     ],
     "deny": [],
     "ask": [],
