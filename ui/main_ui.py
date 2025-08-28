@@ -1351,8 +1351,11 @@ class SpiralStairUI:
 
     def setup_keyboard_shortcuts(self):
         """Set up keyboard shortcuts."""
-        # Bind Shift+Tab to preview configuration
-        self.root.bind('<Shift-ISO_Left_Tab>', lambda e: self.preview_config())
+        # Bind Shift+Tab to preview configuration (network compatible)
+        try:
+            self.root.bind('<Shift-ISO_Left_Tab>', lambda e: self.preview_config())
+        except:
+            pass  # Skip if ISO_Left_Tab not supported
         self.root.bind('<Shift-Tab>', lambda e: self.preview_config())
         # Focus on root to enable keyboard shortcuts
         self.root.focus_set()
