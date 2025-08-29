@@ -15,7 +15,14 @@
       "Bash(where git)",
       "Bash(git --version)",
       "WebSearch",
-      "WebFetch(domain:adndevblog.typepad.com)"
+      "WebFetch(domain:adndevblog.typepad.com)",
+      "Bash(echo $PATH)",
+      "Bash(printenv)",
+      "Bash(node:*)",
+      "Bash(pip3:*)",
+      "Bash(sudo apt:*)",
+      "Bash(pip --version)",
+      "Bash(qwen:*)"
     ],
     "deny": [],
     "ask": [],

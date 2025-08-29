@@ -430,8 +430,8 @@ class TreadModule(BaseStairComponent):
             outer_extended_start = start_angle - outer_angular_extension
             outer_extended_end = end_angle + outer_angular_extension
             
-            # Use tread top height (tread_height + thickness) for 2D geometry
-            geometry_height = tread_height + 0.25  # Add tread thickness to get top surface
+            # Use tread top height for 2D geometry
+            geometry_height = tread_height  # Top surface of tread
             
             print(f"Creating extended arcs at height {geometry_height:.2f}")
             print(f"Original: {math.degrees(start_angle):.1f}° to {math.degrees(end_angle):.1f}°")

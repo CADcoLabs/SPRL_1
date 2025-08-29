@@ -1,0 +1,344 @@
+
+====================================================
+   Spiral Stair Generator - Network Secured Version
+====================================================
+
+Validating corporate network access...
+[OK] Domain detected: MAP.LOCAL
+[OK] Network path validation passed
+[OK] All security checks completed successfully
+
+Checking embedded components...
+[OK] Embedded Python found
+[OK] Portable Git Bash found
+[OK] Application files found
+
+Starting Spiral Stair Generator...
+Using embedded Python: P:\X-CAD TRANSFER\Spiral_Plugin\python\python.exe
+Using portable Git Bash: P:\X-CAD TRANSFER\Spiral_Plugin\git-bash\bin\bash.exe
+Application directory: P:\X-CAD TRANSFER\Spiral_Plugin\spiral_stair_app
+
+2025-08-28 08:13:49,853 - UI_Launcher - INFO - === Spiral Stair UI Launcher Started ===
+2025-08-28 08:13:49,854 - UI_Launcher - INFO - Log file: P:\X-CAD TRANSFER\Spiral_Plugin\spiral_stair_app\logs\spiral_stair_ui_20250828_081349.log
+2025-08-28 08:13:49,854 - UI_Launcher - INFO - AutoCAD Mock Mode: false
+2025-08-28 08:13:49,855 - UI_Launcher - INFO - Starting Spiral Stair UI with real AutoCAD connection...
+08:13:50 [INFO    ] core.logging_config : Dual logging system initialized
+08:13:50 [INFO    ] core.logging_config : Local log directory: C:\Users\barrya\AppData\Local\Temp\SpiralStair_Logs
+08:13:50 [INFO    ] core.logging_config : Network log directory: P:\X-CAD TRANSFER\Spiral_Plugin\spiral_stair_app\logs
+08:13:50 [INFO    ] core.logging_config : User: barrya@DESKTOP-MTUPPBM
+08:13:50 [INFO    ] UI_Launcher         : UI module imported successfully
+08:13:50 [INFO    ] UI_Launcher         : Launching UI...
+08:13:51 [INFO    ] core.orchestrator   : Master Stair Orchestrator initialized
+08:13:51 [INFO    ] core.orchestrator   : Component generation order: Center Pole -> Treads -> Landings -> Posts -> Handrails -> Vertical Pickets -> Horizontal Pickets
+08:14:07 [INFO    ] core.orchestrator   : Starting spiral stair generation
+08:14:07 [INFO    ] core.orchestrator   : Configuration validation passed
+08:14:07 [INFO    ] core.orchestrator   : Initializing AutoCAD interface... (Mock mode: False)
+08:14:07 [INFO    ] core.orchestrator   : Connecting to real AutoCAD interface
+08:14:07 [INFO    ] core.autocad_interface: Creating Real AutoCAD Interface
+08:14:07 [INFO    ] core.autocad_connection.ConnectionManager: AutoCAD connection manager initialized (max_retries=3, retry_delay=1.0s)
+08:14:07 [INFO    ] core.autocad_interface.RealAutoCAD: Real AutoCAD interface initialized (max_retries=3, retry_delay=1.0s)
+08:14:07 [INFO    ] core.autocad_connection.ConnectionManager: Connected to existing AutoCAD instance
+08:14:07 [INFO    ] core.autocad_connection.ConnectionManager: Connected to AutoCAD version: 25.0s (LMS Tech)
+08:14:07 [INFO    ] core.autocad_connection.ConnectionManager: AutoCAD connection successful on attempt 1
+08:14:08 [INFO    ] core.orchestrator   : Standard layers creation completed. 6/6 layers created successfully
+08:14:08 [INFO    ] core.orchestrator   : AutoCAD initialization completed successfully
+08:14:08 [INFO    ] core.orchestrator   : Starting generation of Center Pole
+AutoCAD: Created 3D solid center pole cylinder at Z=0, height=144.0
+Center pole created: diameter=5.56", height=144.0", radius=2.78"
+Center pole positioned: bottom Z=0.0", center Z=72.0", top Z=144.0"
+08:14:08 [INFO    ] core.orchestrator   : Center Pole generated successfully in 0.23s
+08:14:08 [INFO    ] core.orchestrator   : Starting generation of Treads
+Creating 16 treads with 9.00" riser height
+Tread angle: 30.00°, Direction: CW
+Creating tread 1 at height 8.75"
+AutoCAD: Created 3D solid sector tread from 0.0° to 30.0° at Z=8.75
+Creating tread 2 at height 17.75"
+AutoCAD: Created 3D solid sector tread from 30.0° to 60.0° at Z=17.75
+Creating tread 3 at height 26.75"
+AutoCAD: Created 3D solid sector tread from 60.0° to 90.0° at Z=26.75
+Creating tread 4 at height 35.75"
+AutoCAD: Created 3D solid sector tread from 90.0° to 120.0° at Z=35.75
+Creating tread 5 at height 44.75"
+AutoCAD: Created 3D solid sector tread from 120.0° to 150.0° at Z=44.75
+Creating tread 6 at height 53.75"
+AutoCAD: Created 3D solid sector tread from 150.0° to 180.0° at Z=53.75
+Creating tread 7 at height 62.75"
+AutoCAD: Created 3D solid sector tread from 180.0° to 210.0° at Z=62.75
+Creating tread 8 at height 71.75"
+AutoCAD: Created 3D solid sector tread from 210.0° to 240.0° at Z=71.75
+Creating tread 9 at height 80.75"
+AutoCAD: Created 3D solid sector tread from 240.0° to 270.0° at Z=80.75
+Creating tread 10 at height 89.75"
+AutoCAD: Created 3D solid sector tread from 270.0° to 300.0° at Z=89.75
+Creating tread 11 at height 98.75"
+AutoCAD: Created 3D solid sector tread from 300.0° to 330.0° at Z=98.75
+Creating tread 12 at height 107.75"
+AutoCAD: Created 3D solid sector tread from 330.0° to 360.0° at Z=107.75
+Creating tread 13 at height 116.75"
+AutoCAD: Created 3D solid sector tread from 360.0° to 390.0° at Z=116.75
+Creating tread 14 at height 125.75"
+AutoCAD: Created 3D solid sector tread from 390.0° to 420.0° at Z=125.75
+Creating tread 15 at height 134.75"
+AutoCAD: Created 3D solid sector tread from 420.0° to 450.0° at Z=134.75
+Skipping tread 16 - will be top landing
+Successfully created 15 treads
+08:14:10 [INFO    ] core.orchestrator   : Treads generated successfully in 1.61s
+08:14:10 [INFO    ] core.orchestrator   : Starting generation of Landings
+Generating landings for 16 treads
+Real AutoCAD: Created top landing at Z=144.00, angle=450.0°
+Real AutoCAD: Landing dimensions: 36.0" × 50.0"
+Top landing created at height 144.00" and angle 450.0°
+Successfully created 1 landing(s)
+08:14:10 [INFO    ] core.orchestrator   : Landings generated successfully in 0.07s
+08:14:10 [INFO    ] core.orchestrator   : Starting generation of Handrails
+Creating continuous spiral handrail
+Height above tread: 36.0", Diameter: 1.5"
+Material: aluminum, Radius: 34.00"
+End treatment: cap
+Creating CORRECTED spiral handrail helix:
+  Center: (0.0, 0.0, 36.0)
+  Base Radius: 35.25" (CORRECTED: (outside_diameter - diameter) / 2)
+  Height: 144.0" (CORRECTED: overall_height only)
+  Turns: 1.333 (CORRECTED: 450.0° ÷ 337.5)
+  Turn Height: 108.0 (NEW: height / turns)
+  Direction: CCW (forced as expected)
+08:14:10 [INFO    ] core.autocad_interface.RealAutoCAD: Set helix turns to 1.3333333333333333
+Real AutoCAD: Rotating helix by -30.00° to align with treads
+Real AutoCAD: Created and attempted to rotate spiral handrail helix successfully
+Successfully created handrail system
+Total handrail length: 328.55"
+Handrail segments: 1
+08:14:11 [INFO    ] core.orchestrator   : Handrails generated successfully in 0.27s
+08:14:11 [INFO    ] core.orchestrator   : Starting generation of Vertical Pickets
+Creating vertical pickets with 3 per tread
+Material: aluminum, Diameter: 0.75", Position: outer
+Target edge-to-edge spacing: 3.5" (IBC compliant)
+Attempting to set active layer to PICKETS
+Set active layer to PICKETS
+ALL TREADS VERTICAL PICKET IMPLEMENTATION
+Creating identical picket patterns on every tread
+  Outside diameter: 72.0" (radius: 36.0")
+  Handrail diameter: 1.5"
+  Picket diameter: 0.75"
+  IBC Requirement: Edge-to-edge spacing <= 4.0"
+
+TREAD GEOMETRY FOR ALL TREADS:
+  Total treads: 16
+  Tread angle: 30.0°
+  Riser height: 9.0"
+
+PICKET POSITIONING ALIGNMENT:
+  Outside diameter: 72.0"
+  Handrail diameter: 1.5"
+  Handrail radius (from center): 35.25"
+  Pickets positioned directly under handrail center
+
+OPTIMIZING PICKET SPACING (SAME FOR ALL TREADS):
+  2 divisions: edge spacing = 17.50" TOO LARGE
+  3 divisions: edge spacing = 8.45" TOO LARGE
+  4 divisions: edge spacing = 5.39" TOO LARGE
+  5 divisions: edge spacing = 3.86" COMPLIANT
+  6 divisions: edge spacing = 2.94" COMPLIANT
+  7 divisions: edge spacing = 2.33" COMPLIANT
+
+OPTIMAL SOLUTION:
+  Divisions: 5
+  Edge spacing: 3.86" (max allowed: 4.0")
+  Picket count per tread: 5
+
+CREATING PICKETS ON ALL TREADS:
+
+  TREAD 1: Height Z=9.0", Start Angle=0.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 7.5° (relative 7.5°), Z=9.0"
+    Picket 3: 0.75" square polyline at angle 15.0° (relative 15.0°), Z=9.0"
+    Picket 4: 0.75" square polyline at angle 22.5° (relative 22.5°), Z=9.0"
+    Picket 5: 0.75" square polyline at angle 30.0° (relative 30.0°), Z=9.0"
+
+  TREAD 2: Height Z=18.0", Start Angle=30.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 37.5° (relative 7.5°), Z=18.0"
+    Picket 3: 0.75" square polyline at angle 45.0° (relative 15.0°), Z=18.0"
+    Picket 4: 0.75" square polyline at angle 52.5° (relative 22.5°), Z=18.0"
+    Picket 5: 0.75" square polyline at angle 60.0° (relative 30.0°), Z=18.0"
+
+  TREAD 3: Height Z=27.0", Start Angle=60.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 67.5° (relative 7.5°), Z=27.0"
+    Picket 3: 0.75" square polyline at angle 75.0° (relative 15.0°), Z=27.0"
+    Picket 4: 0.75" square polyline at angle 82.5° (relative 22.5°), Z=27.0"
+    Picket 5: 0.75" square polyline at angle 90.0° (relative 30.0°), Z=27.0"
+
+  TREAD 4: Height Z=36.0", Start Angle=90.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 97.5° (relative 7.5°), Z=36.0"
+    Picket 3: 0.75" square polyline at angle 105.0° (relative 15.0°), Z=36.0"
+    Picket 4: 0.75" square polyline at angle 112.5° (relative 22.5°), Z=36.0"
+    Picket 5: 0.75" square polyline at angle 120.0° (relative 30.0°), Z=36.0"
+
+  TREAD 5: Height Z=45.0", Start Angle=120.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 127.5° (relative 7.5°), Z=45.0"
+    Picket 3: 0.75" square polyline at angle 135.0° (relative 15.0°), Z=45.0"
+    Picket 4: 0.75" square polyline at angle 142.5° (relative 22.5°), Z=45.0"
+    Picket 5: 0.75" square polyline at angle 150.0° (relative 30.0°), Z=45.0"
+
+  TREAD 6: Height Z=54.0", Start Angle=150.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 157.5° (relative 7.5°), Z=54.0"
+    Picket 3: 0.75" square polyline at angle 165.0° (relative 15.0°), Z=54.0"
+    Picket 4: 0.75" square polyline at angle 172.5° (relative 22.5°), Z=54.0"
+    Picket 5: 0.75" square polyline at angle 180.0° (relative 30.0°), Z=54.0"
+
+  TREAD 7: Height Z=63.0", Start Angle=180.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 187.5° (relative 7.5°), Z=63.0"
+    Picket 3: 0.75" square polyline at angle 195.0° (relative 15.0°), Z=63.0"
+    Picket 4: 0.75" square polyline at angle 202.5° (relative 22.5°), Z=63.0"
+    Picket 5: 0.75" square polyline at angle 210.0° (relative 30.0°), Z=63.0"
+
+  TREAD 8: Height Z=72.0", Start Angle=210.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 217.5° (relative 7.5°), Z=72.0"
+    Picket 3: 0.75" square polyline at angle 225.0° (relative 15.0°), Z=72.0"
+    Picket 4: 0.75" square polyline at angle 232.5° (relative 22.5°), Z=72.0"
+    Picket 5: 0.75" square polyline at angle 240.0° (relative 30.0°), Z=72.0"
+
+  TREAD 9: Height Z=81.0", Start Angle=240.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 247.5° (relative 7.5°), Z=81.0"
+    Picket 3: 0.75" square polyline at angle 255.0° (relative 15.0°), Z=81.0"
+    Picket 4: 0.75" square polyline at angle 262.5° (relative 22.5°), Z=81.0"
+    Picket 5: 0.75" square polyline at angle 270.0° (relative 30.0°), Z=81.0"
+
+  TREAD 10: Height Z=90.0", Start Angle=270.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 277.5° (relative 7.5°), Z=90.0"
+    Picket 3: 0.75" square polyline at angle 285.0° (relative 15.0°), Z=90.0"
+    Picket 4: 0.75" square polyline at angle 292.5° (relative 22.5°), Z=90.0"
+    Picket 5: 0.75" square polyline at angle 300.0° (relative 30.0°), Z=90.0"
+
+  TREAD 11: Height Z=99.0", Start Angle=300.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 307.5° (relative 7.5°), Z=99.0"
+    Picket 3: 0.75" square polyline at angle 315.0° (relative 15.0°), Z=99.0"
+    Picket 4: 0.75" square polyline at angle 322.5° (relative 22.5°), Z=99.0"
+    Picket 5: 0.75" square polyline at angle 330.0° (relative 30.0°), Z=99.0"
+
+  TREAD 12: Height Z=108.0", Start Angle=330.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 337.5° (relative 7.5°), Z=108.0"
+    Picket 3: 0.75" square polyline at angle 345.0° (relative 15.0°), Z=108.0"
+    Picket 4: 0.75" square polyline at angle 352.5° (relative 22.5°), Z=108.0"
+    Picket 5: 0.75" square polyline at angle 360.0° (relative 30.0°), Z=108.0"
+
+  TREAD 13: Height Z=117.0", Start Angle=360.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 367.5° (relative 7.5°), Z=117.0"
+    Picket 3: 0.75" square polyline at angle 375.0° (relative 15.0°), Z=117.0"
+    Picket 4: 0.75" square polyline at angle 382.5° (relative 22.5°), Z=117.0"
+    Picket 5: 0.75" square polyline at angle 390.0° (relative 30.0°), Z=117.0"
+
+  TREAD 14: Height Z=126.0", Start Angle=390.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 397.5° (relative 7.5°), Z=126.0"
+    Picket 3: 0.75" square polyline at angle 405.0° (relative 15.0°), Z=126.0"
+    Picket 4: 0.75" square polyline at angle 412.5° (relative 22.5°), Z=126.0"
+    Picket 5: 0.75" square polyline at angle 420.0° (relative 30.0°), Z=126.0"
+
+  TREAD 15: Height Z=135.0", Start Angle=420.0°
+    Skipping shortest picket at relative angle 0.0°
+    Picket 2: 0.75" square polyline at angle 427.5° (relative 7.5°), Z=135.0"
+    Picket 3: 0.75" square polyline at angle 435.0° (relative 15.0°), Z=135.0"
+    Picket 4: 0.75" square polyline at angle 442.5° (relative 22.5°), Z=135.0"
+    Picket 5: 0.75" square polyline at angle 450.0° (relative 30.0°), Z=135.0"
+
+CREATING VERTICAL LINES TO HANDRAIL HELIX:
+  Handrail helix parameters:
+    Radius: 35.25"
+    Turns: 1.333
+    Height: 144.0"
+    Start Z: 36.0"
+    Helix end Z: 180.0"
+  Line 1: length 38.2" (Z=9.0" to Z=47.2") [tread 1, angle 7.5°, progress 25.0%]
+  Line 2: length 40.5" (Z=9.0" to Z=49.5") [tread 1, angle 15.0°, progress 50.0%]
+  Line 3: length 42.8" (Z=9.0" to Z=51.8") [tread 1, angle 22.5°, progress 75.0%]
+  Line 4: length 45.0" (Z=9.0" to Z=54.0") [tread 2, angle 30.0°, progress 100.0%]
+  Line 5: length 38.2" (Z=18.0" to Z=56.2") [tread 2, angle 37.5°, progress 25.0%]
+  Line 6: length 40.5" (Z=18.0" to Z=58.5") [tread 2, angle 45.0°, progress 50.0%]
+  Line 7: length 42.8" (Z=18.0" to Z=60.8") [tread 2, angle 52.5°, progress 75.0%]
+  Line 8: length 45.0" (Z=18.0" to Z=63.0") [tread 3, angle 60.0°, progress 100.0%]
+  Line 9: length 38.2" (Z=27.0" to Z=65.2") [tread 3, angle 67.5°, progress 25.0%]
+  Line 10: length 40.5" (Z=27.0" to Z=67.5") [tread 3, angle 75.0°, progress 50.0%]
+  Line 11: length 42.8" (Z=27.0" to Z=69.8") [tread 3, angle 82.5°, progress 75.0%]
+  Line 12: length 45.0" (Z=27.0" to Z=72.0") [tread 4, angle 90.0°, progress 100.0%]
+  Line 13: length 38.2" (Z=36.0" to Z=74.2") [tread 4, angle 97.5°, progress 25.0%]
+  Line 14: length 40.5" (Z=36.0" to Z=76.5") [tread 4, angle 105.0°, progress 50.0%]
+  Line 15: length 42.8" (Z=36.0" to Z=78.8") [tread 4, angle 112.5°, progress 75.0%]
+  Line 16: length 45.0" (Z=36.0" to Z=81.0") [tread 5, angle 120.0°, progress 100.0%]
+  Line 17: length 38.2" (Z=45.0" to Z=83.2") [tread 5, angle 127.5°, progress 25.0%]
+  Line 18: length 40.5" (Z=45.0" to Z=85.5") [tread 5, angle 135.0°, progress 50.0%]
+  Line 19: length 42.8" (Z=45.0" to Z=87.8") [tread 5, angle 142.5°, progress 75.0%]
+  Line 20: length 45.0" (Z=45.0" to Z=90.0") [tread 6, angle 150.0°, progress 100.0%]
+  Line 21: length 38.2" (Z=54.0" to Z=92.2") [tread 6, angle 157.5°, progress 25.0%]
+  Line 22: length 40.5" (Z=54.0" to Z=94.5") [tread 6, angle 165.0°, progress 50.0%]
+  Line 23: length 42.8" (Z=54.0" to Z=96.8") [tread 6, angle 172.5°, progress 75.0%]
+  Line 24: length 45.0" (Z=54.0" to Z=99.0") [tread 7, angle 180.0°, progress 100.0%]
+  Line 25: length 38.2" (Z=63.0" to Z=101.2") [tread 7, angle 187.5°, progress 25.0%]
+  Line 26: length 40.5" (Z=63.0" to Z=103.5") [tread 7, angle 195.0°, progress 50.0%]
+  Line 27: length 42.8" (Z=63.0" to Z=105.8") [tread 7, angle 202.5°, progress 75.0%]
+  Line 28: length 45.0" (Z=63.0" to Z=108.0") [tread 8, angle 210.0°, progress 100.0%]
+  Line 29: length 38.2" (Z=72.0" to Z=110.2") [tread 8, angle 217.5°, progress 25.0%]
+  Line 30: length 40.5" (Z=72.0" to Z=112.5") [tread 8, angle 225.0°, progress 50.0%]
+  Line 31: length 42.8" (Z=72.0" to Z=114.8") [tread 8, angle 232.5°, progress 75.0%]
+  Line 32: length 45.0" (Z=72.0" to Z=117.0") [tread 9, angle 240.0°, progress 100.0%]
+  Line 33: length 38.2" (Z=81.0" to Z=119.2") [tread 9, angle 247.5°, progress 25.0%]
+  Line 34: length 40.5" (Z=81.0" to Z=121.5") [tread 9, angle 255.0°, progress 50.0%]
+  Line 35: length 42.8" (Z=81.0" to Z=123.8") [tread 9, angle 262.5°, progress 75.0%]
+  Line 36: length 45.0" (Z=81.0" to Z=126.0") [tread 10, angle 270.0°, progress 100.0%]
+  Line 37: length 38.2" (Z=90.0" to Z=128.2") [tread 10, angle 277.5°, progress 25.0%]
+  Line 38: length 40.5" (Z=90.0" to Z=130.5") [tread 10, angle 285.0°, progress 50.0%]
+  Line 39: length 42.8" (Z=90.0" to Z=132.8") [tread 10, angle 292.5°, progress 75.0%]
+  Line 40: length 45.0" (Z=90.0" to Z=135.0") [tread 11, angle 300.0°, progress 100.0%]
+  Line 41: length 38.2" (Z=99.0" to Z=137.2") [tread 11, angle 307.5°, progress 25.0%]
+  Line 42: length 40.5" (Z=99.0" to Z=139.5") [tread 11, angle 315.0°, progress 50.0%]
+  Line 43: length 42.8" (Z=99.0" to Z=141.8") [tread 11, angle 322.5°, progress 75.0%]
+  Line 44: length 45.0" (Z=99.0" to Z=144.0") [tread 12, angle 330.0°, progress 100.0%]
+  Line 45: length 38.2" (Z=108.0" to Z=146.2") [tread 12, angle 337.5°, progress 25.0%]
+  Line 46: length 40.5" (Z=108.0" to Z=148.5") [tread 12, angle 345.0°, progress 50.0%]
+  Line 47: length 42.8" (Z=108.0" to Z=150.8") [tread 12, angle 352.5°, progress 75.0%]
+  Line 48: length 45.0" (Z=108.0" to Z=153.0") [tread 13, angle 360.0°, progress 100.0%]
+  Line 49: length 38.2" (Z=117.0" to Z=155.2") [tread 13, angle 367.5°, progress 25.0%]
+  Line 50: length 40.5" (Z=117.0" to Z=157.5") [tread 13, angle 375.0°, progress 50.0%]
+  Line 51: length 42.8" (Z=117.0" to Z=159.8") [tread 13, angle 382.5°, progress 75.0%]
+  Line 52: length 45.0" (Z=117.0" to Z=162.0") [tread 14, angle 390.0°, progress 100.0%]
+  Line 53: length 38.2" (Z=126.0" to Z=164.2") [tread 14, angle 397.5°, progress 25.0%]
+  Line 54: length 40.5" (Z=126.0" to Z=166.5") [tread 14, angle 405.0°, progress 50.0%]
+  Line 55: length 42.8" (Z=126.0" to Z=168.8") [tread 14, angle 412.5°, progress 75.0%]
+  Line 56: length 45.0" (Z=126.0" to Z=171.0") [tread 15, angle 420.0°, progress 100.0%]
+  Line 57: length 38.2" (Z=135.0" to Z=173.2") [tread 15, angle 427.5°, progress 25.0%]
+  Line 58: length 40.5" (Z=135.0" to Z=175.5") [tread 15, angle 435.0°, progress 50.0%]
+  Line 59: length 42.8" (Z=135.0" to Z=177.8") [tread 15, angle 442.5°, progress 75.0%]
+  Line 60: length 45.0" (Z=135.0" to Z=180.0") [tread 16, angle 450.0°, progress 100.0%]
+
+ALL TREADS VERTICAL PICKET CREATION COMPLETE:
+  Total treads: 16
+  Total entities: 150
+  - 32 construction arcs (tread boundaries)
+  - 60 closed polyline squares (0.75" each)
+  - 60 vertical lines to handrail
+  Identical pattern on every tread at correct heights
+  IBC compliant edge spacing: 3.86"
+
+DELETING CONSTRUCTION ARCS:
+  Deleted 30 construction arcs
+
+PICKET SHAPES CREATED AS CLOSED POLYLINES - NO JOIN OPERATION NEEDED
+Successfully created 120 vertical picket entities
+08:14:17 [INFO    ] core.orchestrator   : Vertical Pickets generated successfully in 5.96s
+08:14:17 [INFO    ] core.orchestrator   : Generation completed in 0.00 seconds
+08:14:17 [INFO    ] core.orchestrator   : Collected actual specifications from 11 measurements
+08:14:17 [INFO    ] core.orchestrator   : Stair generation completed successfully
+08:14:17 [INFO    ] core.orchestrator   : Generation finished in 9.39 seconds
+
+
