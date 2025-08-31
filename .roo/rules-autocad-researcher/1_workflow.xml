@@ -1,0 +1,127 @@
+<workflow_instructions>
+  <mode_overview>
+    AutoCAD Researcher mode provides comprehensive research workflows for exploring AutoCAD APIs,
+    finding technical documentation, and identifying implementation patterns for AutoCAD automation.
+    This mode specializes in researching AutoCAD COM interfaces and providing technical guidance.
+  </mode_overview>
+
+  <initialization_steps>
+    <step number="1">
+      <title>Define Research Scope</title>
+      <description>
+        Understand the specific AutoCAD research requirements and focus areas
+      </description>
+      <actions>
+        <action>Identify the AutoCAD API or functionality to research</action>
+        <action>Determine AutoCAD version compatibility requirements</action>
+        <action>Specify research objectives and deliverables</action>
+        <action>Set up research tools and documentation sources</action>
+      </actions>
+    </step>
+
+    <step number="2">
+      <title>Gather Research Sources</title>
+      <description>
+        Locate and organize AutoCAD documentation and reference materials
+      </description>
+      <actions>
+        <action>Access AutoCAD developer documentation and API references</action>
+        <action>Find official Autodesk resources and examples</action>
+        <action>Locate community resources and implementation examples</action>
+        <action>Identify relevant research tools and methodologies</action>
+      </actions>
+    </step>
+
+    <step number="3">
+      <title>Plan Research Strategy</title>
+      <description>
+        Design the approach for comprehensive AutoCAD research
+      </description>
+      <actions>
+        <action>Define research methodology and systematic approach</action>
+        <action>Establish documentation and reporting standards</action>
+        <action>Plan validation methods for research findings</action>
+        <action>Set up tracking for research progress and findings</action>
+      </actions>
+    </step>
+  </initialization_steps>
+
+  <main_workflow>
+    <phase name="documentation_research">
+      <description>Research official AutoCAD documentation and API references</description>
+      <steps>
+        <step>Search AutoCAD developer documentation for specific APIs</step>
+        <step>Find official method signatures and parameter requirements</step>
+        <step>Locate error code documentation and troubleshooting guides</step>
+        <step>Identify version compatibility and deprecation notices</step>
+        <step>Document official implementation examples and patterns</step>
+      </steps>
+    </phase>
+
+    <phase name="api_exploration">
+      <description>Explore AutoCAD COM interface and object models</description>
+      <steps>
+        <step>Examine AutoCAD COM object hierarchy and relationships</step>
+        <step>Research property and method availability across versions</step>
+        <step>Identify parameter types and data format requirements</step>
+        <step>Explore alternative approaches for API limitations</step>
+        <step>Document integration patterns and best practices</step>
+      </steps>
+    </phase>
+
+    <phase name="implementation_guidance">
+      <description>Provide implementation guidance and code examples</description>
+      <steps>
+        <step>Create Python code examples using pywin32</step>
+        <step>Document parameter marshalling and VARIANT array handling</step>
+        <step>Provide error handling patterns and recovery strategies</step>
+        <step>Identify performance optimization techniques</step>
+        <step>Create troubleshooting guides for common issues</step>
+      </steps>
+    </phase>
+
+    <phase name="validation_testing">
+      <description>Validate research findings through testing and verification</description>
+      <steps>
+        <step>Test research findings in controlled AutoCAD environment</step>
+        <step>Verify API behavior across different scenarios</step>
+        <step>Validate parameter requirements and error conditions</step>
+        <step>Document testing results and observations</step>
+        <step>Refine research findings based on validation results</step>
+      </steps>
+    </phase>
+  </main_workflow>
+
+  <testing_validation>
+    <test_category name="documentation_accuracy">
+      <description>Verify accuracy of research findings and documentation</description>
+      <tests>
+        <test>Cross-reference findings with multiple documentation sources</test>
+        <test>Validate API signatures against AutoCAD runtime behavior</test>
+        <test>Verify parameter requirements with actual implementation</test>
+        <test>Test error handling scenarios and recovery mechanisms</test>
+        <test>Confirm version compatibility across target AutoCAD versions</test>
+      </tests>
+    </test_category>
+
+    <test_category name="implementation_validation">
+      <description>Test implementation examples and code patterns</description>
+      <tests>
+        <test>Verify Python code examples work with pywin32</test>
+        <test>Test parameter marshalling with various data types</test>
+        <test>Validate error handling and exception management</test>
+        <test>Confirm performance characteristics of recommended patterns</test>
+        <test>Test integration with broader AutoCAD automation systems</test>
+      </tests>
+    </test_category>
+  </testing_validation>
+
+  <completion_criteria>
+    <criterion>Comprehensive AutoCAD API documentation researched and documented</criterion>
+    <criterion>Accurate method signatures and parameter requirements identified</criterion>
+    <criterion>Implementation examples provided and validated</criterion>
+    <criterion>Error handling patterns and troubleshooting guides created</criterion>
+    <criterion>Research findings validated through testing and verification</criterion>
+    <criterion>Documentation organized for easy reference and implementation</criterion>
+  </completion_criteria>
+</workflow_instructions>

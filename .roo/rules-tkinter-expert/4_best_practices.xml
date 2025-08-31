@@ -1,0 +1,562 @@
+<best_practices>
+  <general_principles>
+    <principle priority="high">
+      <name>Separate UI Logic from Business Logic</name>
+      <description>Maintain clean separation between Tkinter UI code and AutoCAD operations</description>
+      <rationale>Improves maintainability, testability, and reusability of code components</rationale>
+      <example>
+        <good><![CDATA[
+# Good: Separated concerns
+class AutoCADGeometryCreator:
+    """Handles AutoCAD geometry operations."""
+    def create_circle(self, center, radius):
+        # Pure AutoCAD logic here
+        pass
+
+class GeometryUI(ttk.Frame):
+    """Handles UI for geometry creation."""
+    def __init__(self, parent, geometry_creator):
+        super().__init__(parent)
+        self.creator = geometry_creator
+        self.create_ui()
+
+    def on_create_circle(self):
+        # UI logic only
+        center = self.get_center_input()
+        radius = self.get_radius_input()
+        # Delegate to business logic
+        self.creator.create_circle(center, radius)
+        ]]></good>
+        <bad><![CDATA[
+# Bad: Mixed concerns
+def create_circle_button_click(self):
+    # Mixed UI and business logic
+    center = self.center_entry.get()
+    radius = self.radius_entry.get()
+    # Business logic mixed with UI
+    acad_app = win32com.client.Dispatch("AutoCAD.Application")
+    # ... more AutoCAD code mixed in
+    self.status_label.config(text="Created circle")
+        ]]></bad>
+      </example>
+    </principle>
+
+    <principle priority="high">
+      <name>Use Threading for AutoCAD Operations</name>
+      <description>Never block the UI thread with AutoCAD COM operations</description>
+      <rationale>Prevents UI freezing and provides responsive user experience</rationale>
+      <example>
+        <good><![CDATA[
+def on_button_click(self):
+    """Proper threading for AutoCAD operations."""
+    def background_task():
+        try:
+            # Show progress
+            self.root.after(0, lambda: self.status_var.set("Working..."))
+
+            # Perform AutoCAD operations
+            self.create_autocad_geometry()
+
+            # Update UI when complete
+            self.root.after(0, lambda: self.status_var.set("Complete"))
+
+        except Exception as e:
+            self.root.after(0, lambda: self.status_var.set(f"Error: {e}"))
+
+    # Start background thread
+    thread = threading.Thread(target=background_task, daemon=True)
+    thread.start()
+        ]]></good>
+        <bad><![CDATA[
+def on_button_click(self):
+    """This will freeze the UI."""
+    # Direct AutoCAD call - blocks UI thread
+    self.create_autocad_geometry()  # UI freezes here
+    self.status_var.set("Complete")  # Never reached if above fails
+        ]]></bad>
+      </example>
+    </principle>
+
+    <principle priority="high">
+      <name>Implement Comprehensive Error Handling</name>
+      <description>Handle all possible error conditions gracefully</description>
+      <rationale>Provides robust applications and better user experience</rationale>
+      <example>
+        <good><![CDATA[
+class AutoCADErrorHandler:
+    """Centralized error handling for AutoCAD operations."""
+
+    @staticmethod
+    def handle_autocad_error(error, context=""):
+        """Handle AutoCAD-specific errors."""
+        if isinstance(error, com_error):
+            hresult = error.hresult
+            if hresult == -2147352567:
+                return "Invalid parameters provided to AutoCAD operation"
+            elif "connection" in str(error).lower():
+                return "Failed to connect to AutoCAD. Please ensure AutoCAD is running."
+        return f"AutoCAD operation failed: {str(error)}"
+
+def safe_autocad_operation(self):
+    """Example of comprehensive error handling."""
+    try:
+        # Validate inputs first
+        center = self.validate_coordinates(self.center_entry.get())
+        radius = self.validate_radius(self.radius_entry.get())
+
+        # Perform operation
+        with self.com_lock:
+            result = self.acad_app.ActiveDocument.ModelSpace.AddCircle(
+                self.convert_to_variant(center), radius
+            )
+
+        return result
+
+    except ValueError as e:
+        raise ValueError(f"Input validation failed: {e}")
+    except com_error as e:
+        raise RuntimeError(AutoCADErrorHandler.handle_autocad_error(e, "circle creation"))
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error: {e}")
+        ]]></good>
+        <bad><![CDATA[
+def unsafe_operation(self):
+    """No error handling - application will crash."""
+    center = self.center_entry.get()
+    radius = self.radius_entry.get()
+    # No validation, no error handling
+    result = self.acad_app.ActiveDocument.ModelSpace.AddCircle(center, radius)
+    return result
+        ]]></bad>
+      </example>
+    </principle>
+  </general_principles>
+
+  <code_conventions>
+    <convention category="naming">
+      <rule>Use descriptive names for Tkinter variables and methods</rule>
+      <examples>
+        <good>
+          <variable>self.status_label</variable>
+          <variable>self.progress_var</variable>
+          <method>self.on_create_geometry_click()</method>
+          <method>self.validate_coordinate_input()</method>
+        </good>
+        <bad>
+          <variable>self.lbl</variable>
+          <variable>self.pv</variable>
+          <method>self.click()</method>
+          <method>self.check()</method>
+        </bad>
+      </examples>
+    </convention>
+
+    <convention category="structure">
+      <rule>Organize code into logical sections with clear comments</rule>
+      <template>
+        <![CDATA[
+class MainApplication:
+    def __init__(self, root):
+        self.root = root
+        self.setup_variables()
+        self.create_widgets()
+        self.setup_layout()
+        self.bind_events()
+
+    def setup_variables(self):
+        """Initialize Tkinter variables and application state."""
+        pass
+
+    def create_widgets(self):
+        """Create all UI widgets."""
+        pass
+
+    def setup_layout(self):
+        """Configure widget layout and positioning."""
+        pass
+
+    def bind_events(self):
+        """Bind event handlers to widgets."""
+        pass
+        ]]>
+      </template>
+    </convention>
+
+    <convention category="imports">
+      <rule>Organize imports and use absolute imports</rule>
+      <good><![CDATA[
+# Standard library imports
+import threading
+import queue
+import logging
+
+# Third-party imports
+import tkinter as tk
+from tkinter import ttk
+import win32com.client
+import pythoncom
+
+# Local imports
+from .autocad_manager import AutoCADManager
+from .validators import CoordinateValidator
+      ]]></good>
+      <bad><![CDATA[
+# Unorganized imports
+import tkinter as tk, sys, os
+from tkinter import *
+import win32com.client as com
+      ]]></bad>
+    </convention>
+  </code_conventions>
+
+  <layout_best_practices>
+    <practice category="grid_system">
+      <description>Use grid system for complex layouts</description>
+      <guidelines>
+        <guideline>Plan your grid layout on paper first</guideline>
+        <guideline>Use columnconfigure and rowconfigure for proper expansion</guideline>
+        <guideline>Group related widgets in frames</guideline>
+        <guideline>Use consistent padding and spacing</guideline>
+      </guidelines>
+      <example><![CDATA[
+def setup_main_layout(self):
+    """Example of proper grid layout setup."""
+    # Configure main window
+    self.root.columnconfigure(0, weight=1)
+    self.root.rowconfigure(0, weight=1)
+
+    # Create main container
+    main_frame = ttk.Frame(self.root, padding="10")
+    main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+    # Configure main frame grid
+    main_frame.columnconfigure(0, weight=1)
+    main_frame.rowconfigure(1, weight=1)  # Content area expands
+
+    # Header section
+    header_frame = ttk.Frame(main_frame)
+    header_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+    header_frame.columnconfigure(0, weight=1)
+
+    ttk.Label(header_frame, text="AutoCAD Geometry Tool",
+             font=("Arial", 14, "bold")).grid(row=0, column=0)
+
+    # Content section
+    content_frame = ttk.Frame(main_frame)
+    content_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+    content_frame.columnconfigure(0, weight=1)
+    content_frame.rowconfigure(0, weight=1)
+
+    # Input section
+    input_frame = ttk.LabelFrame(content_frame, text="Parameters", padding="5")
+    input_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+    input_frame.columnconfigure(1, weight=1)
+
+    # Parameter inputs with proper grid layout
+    ttk.Label(input_frame, text="Center X:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+    self.center_x_entry = ttk.Entry(input_frame)
+    self.center_x_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 5))
+
+    ttk.Label(input_frame, text="Center Y:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5))
+    self.center_y_entry = ttk.Entry(input_frame)
+    self.center_y_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(0, 5))
+      ]]></example>
+    </practice>
+
+    <practice category="responsive_design">
+      <description>Create layouts that adapt to window resizing</description>
+      <guidelines>
+        <guideline>Use weight > 0 for expandable columns/rows</guideline>
+        <guideline>Use sticky options for proper widget expansion</guideline>
+        <guideline>Bind to Configure event for dynamic layout changes</guideline>
+        <guideline>Test layouts at minimum and maximum window sizes</guideline>
+      </guidelines>
+      <example><![CDATA[
+def make_layout_responsive(self):
+    """Make layout responsive to window resizing."""
+
+    # Bind to window resize event
+    self.root.bind('<Configure>', self.on_window_resize)
+
+    # Use relative sizing for widgets
+    self.button_frame = ttk.Frame(self.main_frame)
+    self.button_frame.grid(row=2, column=0, sticky=(tk.W, tk.E))
+
+    # Configure responsive columns
+    for i in range(3):  # Assuming 3 buttons
+        self.button_frame.columnconfigure(i, weight=1)
+
+    # Create buttons that expand with container
+    self.create_button = ttk.Button(self.button_frame, text="Create")
+    self.create_button.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=2)
+
+    self.cancel_button = ttk.Button(self.button_frame, text="Cancel")
+    self.cancel_button.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=2)
+
+    self.help_button = ttk.Button(self.button_frame, text="Help")
+    self.help_button.grid(row=0, column=2, sticky=(tk.W, tk.E), padx=2)
+
+def on_window_resize(self, event):
+    """Handle window resize events."""
+    # Only respond to main window resize, not child widget events
+    if event.widget == self.root:
+        width = event.width
+        height = event.height
+
+        # Adjust layout based on size
+        if width < 600:
+            # Compact layout
+            self.switch_to_compact_layout()
+        else:
+            # Normal layout
+            self.switch_to_normal_layout()
+      ]]></example>
+    </practice>
+  </layout_best_practices>
+
+  <performance_optimization>
+    <optimization category="memory_management">
+      <description>Proper memory management for COM objects</description>
+      <guidelines>
+        <guideline>Release COM objects explicitly when done</guideline>
+        <guideline>Use context managers for COM operations</guideline>
+        <guideline>Avoid keeping COM references longer than needed</guideline>
+        <guideline>Monitor memory usage in long-running applications</guideline>
+      </guidelines>
+      <example><![CDATA[
+class COMMemoryManager:
+    """Manage COM object lifecycle."""
+
+    def __init__(self):
+        self.com_objects = []
+        self._lock = threading.Lock()
+
+    def register_com_object(self, obj):
+        """Register COM object for cleanup."""
+        with self._lock:
+            self.com_objects.append(obj)
+
+    def cleanup_com_objects(self):
+        """Clean up all registered COM objects."""
+        with self._lock:
+            for obj in self.com_objects:
+                try:
+                    # Release COM reference
+                    obj = None
+                except:
+                    pass
+            self.com_objects.clear()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup_com_objects()
+
+# Usage
+def create_geometry_with_memory_management(self):
+    """Create geometry with proper memory management."""
+    with COMMemoryManager() as memory_manager:
+        try:
+            # Get AutoCAD objects
+            acad_app = win32com.client.Dispatch("AutoCAD.Application")
+            memory_manager.register_com_object(acad_app)
+
+            doc = acad_app.ActiveDocument
+            memory_manager.register_com_object(doc)
+
+            model_space = doc.ModelSpace
+            memory_manager.register_com_object(model_space)
+
+            # Create geometry
+            # COM objects automatically cleaned up on exit
+
+        except Exception as e:
+            print(f"Error: {e}")
+            # Cleanup still happens due to context manager
+        ]]></example>
+    </optimization>
+
+    <optimization category="ui_updates">
+      <description>Efficient UI updates from background threads</description>
+      <guidelines>
+        <guideline>Use root.after() for thread-safe UI updates</guideline>
+        <guideline>Batch UI updates to reduce flicker</guideline>
+        <guideline>Use StringVar/DoubleVar for reactive updates</guideline>
+        <guideline>Avoid frequent UI updates during long operations</guideline>
+      </guidelines>
+      <example><![CDATA[
+class EfficientUIUpdater:
+    """Efficient UI updates from background threads."""
+
+    def __init__(self, root):
+        self.root = root
+        self.pending_updates = {}
+        self.update_lock = threading.Lock()
+        self.update_scheduled = False
+
+    def schedule_ui_update(self, widget_method, *args, **kwargs):
+        """Schedule UI update to be batched."""
+        with self.update_lock:
+            key = (widget_method, args, kwargs)
+            self.pending_updates[key] = True
+
+            if not self.update_scheduled:
+                self.update_scheduled = True
+                self.root.after(100, self.process_pending_updates)  # Batch every 100ms
+
+    def process_pending_updates(self):
+        """Process all pending UI updates."""
+        with self.update_lock:
+            updates = list(self.pending_updates.keys())
+            self.pending_updates.clear()
+            self.update_scheduled = False
+
+        # Execute all updates
+        for widget_method, args, kwargs in updates:
+            try:
+                widget_method(*args, **kwargs)
+            except Exception as e:
+                print(f"UI update failed: {e}")
+
+        # Reschedule if more updates arrived during processing
+        with self.update_lock:
+            if self.pending_updates and not self.update_scheduled:
+                self.update_scheduled = True
+                self.root.after(100, self.process_pending_updates)
+
+# Usage
+updater = EfficientUIUpdater(root)
+
+def background_operation():
+    """Example background operation with efficient UI updates."""
+    for i in range(100):
+        # Do work
+        time.sleep(0.01)
+
+        # Schedule UI update (batched)
+        updater.schedule_ui_update(
+            self.progress_var.set,
+            (i + 1)
+        )
+
+        updater.schedule_ui_update(
+            self.status_var.set,
+            f"Processing: {i + 1}%"
+        )
+        ]]></example>
+    </optimization>
+  </performance_optimization>
+
+  <security_considerations>
+    <consideration category="input_validation">
+      <description>Validate all user inputs to prevent security issues</description>
+      <guidelines>
+        <guideline>Validate coordinate ranges and types</guideline>
+        <guideline>Sanitize file paths and names</guideline>
+        <guideline>Check for injection attacks in AutoCAD commands</guideline>
+        <guideline>Use parameterized queries where applicable</guideline>
+      </guidelines>
+      <example><![CDATA[
+class InputValidator:
+    """Comprehensive input validation."""
+
+    @staticmethod
+    def validate_coordinate(value, min_val=-10000, max_val=10000):
+        """Validate coordinate input."""
+        try:
+            coord = float(value)
+            if not (min_val <= coord <= max_val):
+                raise ValueError(f"Coordinate must be between {min_val} and {max_val}")
+            return coord
+        except ValueError:
+            raise ValueError("Please enter a valid number")
+
+    @staticmethod
+    def validate_file_path(file_path):
+        """Validate and sanitize file path."""
+        import os.path
+
+        # Check for dangerous characters
+        dangerous_chars = ['<', '>', ':', '"', '|', '?', '*']
+        if any(char in file_path for char in dangerous_chars):
+            raise ValueError("File path contains invalid characters")
+
+        # Normalize path
+        normalized_path = os.path.normpath(file_path)
+
+        # Check if path is within allowed directory
+        allowed_base = os.path.abspath("./allowed_directory")
+        if not os.path.commonpath([allowed_base, normalized_path]).startswith(allowed_base):
+            raise ValueError("File path is outside allowed directory")
+
+        return normalized_path
+
+    @staticmethod
+    def validate_autocad_command(command):
+        """Validate AutoCAD command to prevent injection."""
+        # List of allowed commands
+        allowed_commands = [
+            'LINE', 'CIRCLE', 'ARC', 'RECTANGLE', 'POLYGON',
+            'ZOOM', 'PAN', 'REGEN', 'SAVE', 'OPEN'
+        ]
+
+        # Check if command starts with allowed command
+        command_upper = command.strip().upper()
+        if not any(command_upper.startswith(cmd) for cmd in allowed_commands):
+            raise ValueError(f"Command not allowed: {command}")
+
+        # Check for dangerous patterns
+        dangerous_patterns = ['DEL', 'ERASE', 'SCRIPT', 'VBA']
+        if any(pattern in command_upper for pattern in dangerous_patterns):
+            raise ValueError(f"Dangerous command pattern detected: {command}")
+
+        return command
+
+# Usage in UI
+def on_command_execute(self):
+    """Execute AutoCAD command with validation."""
+    try:
+        command = self.command_entry.get()
+        validated_command = InputValidator.validate_autocad_command(command)
+
+        # Execute validated command
+        self.execute_autocad_command(validated_command)
+
+    except ValueError as e:
+        messagebox.showerror("Validation Error", str(e))
+        ]]></example>
+    </consideration>
+  </security_considerations>
+
+  <quality_assurance>
+    <qa_practice category="code_reviews">
+      <description>Code review guidelines for Tkinter applications</description>
+      <checklist>
+        <item>UI logic is separated from business logic</item>
+        <item>All AutoCAD operations are properly threaded</item>
+        <item>Error handling covers all exception paths</item>
+        <item>Input validation is comprehensive</item>
+        <item>Memory management is proper for COM objects</item>
+        <item>UI updates are thread-safe</item>
+        <item>Layout is responsive and well-structured</item>
+        <item>Code follows naming conventions</item>
+        <item>Logging is implemented appropriately</item>
+        <item>Security considerations are addressed</item>
+      </checklist>
+    </qa_practice>
+
+    <qa_practice category="testing">
+      <description>Testing requirements for Tkinter applications</description>
+      <requirements>
+        <requirement>Unit tests for all validation functions</requirement>
+        <requirement>Integration tests for AutoCAD operations</requirement>
+        <requirement>UI tests for layout and responsiveness</requirement>
+        <requirement>Threading tests for concurrent operations</requirement>
+        <requirement>Error handling tests for all failure scenarios</requirement>
+        <requirement>Performance tests for memory usage</requirement>
+        <requirement>Security tests for input validation</requirement>
+      </requirements>
+    </qa_practice>
+  </quality_assurance>
+</best_practices>

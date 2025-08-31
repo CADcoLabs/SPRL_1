@@ -72,5 +72,7 @@ htmlcov/
 .pytest_cache/
 .tox/
 
-# Agents
-agents/
+# Agents folder removed from gitignore to track custom modes
+# Claude agents folder (duplicates tracked in main agents/ folder)
+.claude/agents/
+QWEN.md

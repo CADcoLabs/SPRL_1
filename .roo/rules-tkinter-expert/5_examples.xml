@@ -1,0 +1,1035 @@
+
+<examples>
+  <example name="basic_autocad_integration">
+    <description>A complete Tkinter application that creates basic geometry in AutoCAD</description>
+    <context>When you need a simple UI for AutoCAD geometry creation</context>
+    <code language="python">
+      <![CDATA[
+import tkinter as tk
+from tkinter import ttk, messagebox
+import threading
+import win32com.client
+import pythoncom
+import logging
+
+class BasicAutoCADTool:
+    """Basic Tkinter tool for AutoCAD geometry creation."""
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("AutoCAD Geometry Creator")
+        self.root.geometry("400x300")
+
+        # AutoCAD connection
+        self.acad_app = None
+        self.acad_doc = None
+        self.model_space = None
+        self.connected = False
+
+        # UI variables
+        self.status_var = tk.StringVar(value="Not connected to AutoCAD")
+        self.center_x_var = tk.StringVar(value="0")
+        self.center_y_var = tk.StringVar(value="0")
+        self.radius_var = tk.StringVar(value="10")
+
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+
+        # Create UI
+        self.create_widgets()
+        self.setup_layout()
+
+    def create_widgets(self):
+        """Create all UI widgets."""
+        # Main frame
+        self.main_frame = ttk.Frame(self.root, padding="10")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Connection section
+        self.connection_frame = ttk.LabelFrame(self.main_frame, text="AutoCAD Connection", padding="5")
+        self.connect_button = ttk.Button(self.connection_frame, text="Connect to AutoCAD",
+                                       command=self.connect_to_autocad)
+        self.connection_status_label = ttk.Label(self.connection_frame, textvariable=self.status_var)
+
+        # Geometry section
+        self.geometry_frame = ttk.LabelFrame(self.main_frame, text="Circle Parameters", padding="5")
+
+        # Center X
+        ttk.Label(self.geometry_frame, text="Center X:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.center_x_entry = ttk.Entry(self.geometry_frame, textvariable=self.center_x_var, width=10)
+        self.center_x_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        # Center Y
+        ttk.Label(self.geometry_frame, text="Center Y:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.center_y_entry = ttk.Entry(self.geometry_frame, textvariable=self.center_y_var, width=10)
+        self.center_y_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        # Radius
+        ttk.Label(self.geometry_frame, text="Radius:").grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.radius_entry = ttk.Entry(self.geometry_frame, textvariable=self.radius_var, width=10)
+        self.radius_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        # Buttons
+        self.button_frame = ttk.Frame(self.geometry_frame)
+        self.create_button = ttk.Button(self.button_frame, text="Create Circle",
+                                      command=self.create_circle, state=tk.DISABLED)
+        self.exit_button = ttk.Button(self.button_frame, text="Exit", command=self.root.quit)
+
+    def setup_layout(self):
+        """Configure the layout."""
+        # Configure main window
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+
+        # Configure main frame
+        self.main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=1)
+
+        # Layout frames
+        self.connection_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.geometry_frame.grid(row=1, column=0, sticky=(tk.W, tk.E))
+
+        # Connection frame layout
+        self.connection_frame.columnconfigure(0, weight=1)
+        self.connect_button.grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        self.connection_status_label.grid(row=1, column=0, sticky=tk.W)
+
+        # Geometry frame layout
+        self.geometry_frame.columnconfigure(0, weight=1)
+        self.geometry_frame.columnconfigure(1, weight=1)
+        self.button_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(10, 0))
+
+        # Button frame layout
+        self.button_frame.columnconfigure(0, weight=1)
+        self.button_frame.columnconfigure(1, weight=1)
+        self.create_button.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 5))
+        self.exit_button.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(5, 0))
+
+    def connect_to_autocad(self):
+        """Connect to AutoCAD application."""
+        def connect():
+            try:
+                pythoncom.CoInitialize()
+
+                # Try to connect to existing instance
+                try:
+                    self.acad_app = win32com.client.GetActiveObject("AutoCAD.Application")
+                    self.logger.info("Connected to existing AutoCAD instance")
+                except:
+                    self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
+                    self.acad_app.Visible = True
+                    self.logger.info("Started new AutoCAD instance")
+
+                # Get document and model space
+                self.acad_doc = self.acad_app.ActiveDocument
+                self.model_space = self.acad_doc.ModelSpace
+                self.connected = True
+
+                # Update UI
+                self.root.after(0, lambda: self.status_var.set("Connected to AutoCAD"))
+                self.root.after(0, lambda: self.create_button.config(state=tk.NORMAL))
+
+            except Exception as e:
+                self.logger.error(f"Failed to connect to AutoCAD: {e}")
+                self.root.after(0, lambda: self.status_var.set(f"Connection failed: {str(e)}"))
+
+        # Run connection in background thread
+        thread = threading.Thread(target=connect, daemon=True)
+        thread.start()
+
+    def create_circle(self):
+        """Create a circle in AutoCAD."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        try:
+            # Validate inputs
+            center_x = float(self.center_x_var.get())
+            center_y = float(self.center_y_var.get())
+            radius = float(self.radius_var.get())
+
+            if radius <= 0:
+                raise ValueError("Radius must be positive")
+
+            # Update status
+            self.status_var.set("Creating circle...")
+
+            def create_circle_task():
+                try:
+                    # Convert to AutoCAD VARIANT format
+                    center = win32com.client.VARIANT(
+                        pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                        [center_x, center_y, 0.0]
+                    )
+
+                    # Create circle
+                    circle = self.model_space.AddCircle(center, radius)
+
+                    # Update UI
+                    self.root.after(0, lambda: self.status_var.set(
+                        f"Circle created at ({center_x}, {center_y}) with radius {radius}"
+                    ))
+
+                    self.logger.info(f"Created circle: center=({center_x}, {center_y}), radius={radius}")
+
+                except Exception as e:
+                    self.logger.error(f"Failed to create circle: {e}")
+                    self.root.after(0, lambda: self.status_var.set(f"Error: {str(e)}"))
+
+            # Run in background thread
+            thread = threading.Thread(target=create_circle_task, daemon=True)
+            thread.start()
+
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e))
+        except Exception as e:
+            messagebox.showerror("Error", f"Unexpected error: {str(e)}")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = BasicAutoCADTool(root)
+    root.mainloop()
+      ]]>
+    </code>
+    <explanation>
+      This example demonstrates a complete Tkinter application that connects to AutoCAD and creates circles.
+      Key features include thread-safe AutoCAD operations, proper error handling, and responsive UI design.
+    </explanation>
+  </example>
+
+  <example name="advanced_geometry_creator">
+    <description>A comprehensive geometry creation tool with multiple shape types and progress tracking</description>
+    <context>When you need a more advanced UI for creating various AutoCAD geometries</context>
+    <code language="python">
+      <![CDATA[
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import threading
+import queue
+import win32com.client
+import pythoncom
+import time
+import logging
+from typing import List, Tuple
+
+class AdvancedGeometryCreator:
+    """Advanced Tkinter tool for multiple AutoCAD geometry types."""
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Advanced AutoCAD Geometry Creator")
+        self.root.geometry("600x500")
+
+        # AutoCAD connection
+        self.acad_app = None
+        self.connected = False
+
+        # Threading
+        self.operation_queue = queue.Queue()
+        self.worker_thread = None
+        self.is_running = True
+
+        # UI variables
+        self.status_var = tk.StringVar(value="Not connected")
+        self.progress_var = tk.DoubleVar(value=0)
+        self.geometry_type_var = tk.StringVar(value="circle")
+
+        # Setup logging
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        self.logger = logging.getLogger(__name__)
+
+        # Create UI
+        self.create_widgets()
+        self.setup_layout()
+        self.start_worker_thread()
+
+    def create_widgets(self):
+        """Create all UI widgets."""
+        # Main frame
+        self.main_frame = ttk.Frame(self.root, padding="10")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Connection section
+        self.connection_frame = ttk.LabelFrame(self.main_frame, text="AutoCAD Connection", padding="5")
+        self.connect_button = ttk.Button(self.connection_frame, text="Connect to AutoCAD",
+                                       command=self.connect_to_autocad)
+        self.connection_status_label = ttk.Label(self.connection_frame, textvariable=self.status_var)
+
+        # Geometry type selection
+        self.type_frame = ttk.LabelFrame(self.main_frame, text="Geometry Type", padding="5")
+        self.geometry_combo = ttk.Combobox(self.type_frame, textvariable=self.geometry_type_var,
+                                         values=["circle", "rectangle", "line", "polygon"],
+                                         state="readonly")
+        self.geometry_combo.bind('<<ComboboxSelected>>', self.on_geometry_type_changed)
+
+        # Parameters section (dynamic)
+        self.params_frame = ttk.LabelFrame(self.main_frame, text="Parameters", padding="5")
+        self.create_parameter_widgets()
+
+        # Action buttons
+        self.button_frame = ttk.Frame(self.main_frame)
+        self.create_button = ttk.Button(self.button_frame, text="Create Geometry",
+                                      command=self.create_geometry, state=tk.DISABLED)
+        self.batch_create_button = ttk.Button(self.button_frame, text="Batch Create",
+                                            command=self.batch_create_geometry, state=tk.DISABLED)
+        self.exit_button = ttk.Button(self.button_frame, text="Exit", command=self.on_closing)
+
+        # Progress section
+        self.progress_frame = ttk.Frame(self.main_frame)
+        self.progress_bar = ttk.Progressbar(self.progress_frame, variable=self.progress_var,
+                                          maximum=100, length=300)
+        self.progress_label = ttk.Label(self.progress_frame, textvariable=self.status_var)
+
+    def create_parameter_widgets(self):
+        """Create parameter input widgets based on geometry type."""
+        # Clear existing parameter widgets
+        for widget in self.params_frame.winfo_children():
+            widget.destroy()
+
+        geometry_type = self.geometry_type_var.get()
+
+        if geometry_type == "circle":
+            self.create_circle_parameters()
+        elif geometry_type == "rectangle":
+            self.create_rectangle_parameters()
+        elif geometry_type == "line":
+            self.create_line_parameters()
+        elif geometry_type == "polygon":
+            self.create_polygon_parameters()
+
+    def create_circle_parameters(self):
+        """Create parameter widgets for circle."""
+        # Center coordinates
+        ttk.Label(self.params_frame, text="Center X:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.center_x_entry = ttk.Entry(self.params_frame, width=15)
+        self.center_x_entry.insert(0, "0")
+        self.center_x_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Center Y:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.center_y_entry = ttk.Entry(self.params_frame, width=15)
+        self.center_y_entry.insert(0, "0")
+        self.center_y_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        # Radius
+        ttk.Label(self.params_frame, text="Radius:").grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.radius_entry = ttk.Entry(self.params_frame, width=15)
+        self.radius_entry.insert(0, "10")
+        self.radius_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        self.params_frame.columnconfigure(1, weight=1)
+
+    def create_rectangle_parameters(self):
+        """Create parameter widgets for rectangle."""
+        ttk.Label(self.params_frame, text="Corner 1 X:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.rect_x1_entry = ttk.Entry(self.params_frame, width=15)
+        self.rect_x1_entry.insert(0, "0")
+        self.rect_x1_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Corner 1 Y:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.rect_y1_entry = ttk.Entry(self.params_frame, width=15)
+        self.rect_y1_entry.insert(0, "0")
+        self.rect_y1_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Corner 2 X:").grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.rect_x2_entry = ttk.Entry(self.params_frame, width=15)
+        self.rect_x2_entry.insert(0, "20")
+        self.rect_x2_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Corner 2 Y:").grid(row=3, column=0, sticky=tk.W, pady=2)
+        self.rect_y2_entry = ttk.Entry(self.params_frame, width=15)
+        self.rect_y2_entry.insert(0, "10")
+        self.rect_y2_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        self.params_frame.columnconfigure(1, weight=1)
+
+    def create_line_parameters(self):
+        """Create parameter widgets for line."""
+        ttk.Label(self.params_frame, text="Start X:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.line_x1_entry = ttk.Entry(self.params_frame, width=15)
+        self.line_x1_entry.insert(0, "0")
+        self.line_x1_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Start Y:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.line_y1_entry = ttk.Entry(self.params_frame, width=15)
+        self.line_y1_entry.insert(0, "0")
+        self.line_y1_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="End X:").grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.line_x2_entry = ttk.Entry(self.params_frame, width=15)
+        self.line_x2_entry.insert(0, "50")
+        self.line_x2_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="End Y:").grid(row=3, column=0, sticky=tk.W, pady=2)
+        self.line_y2_entry = ttk.Entry(self.params_frame, width=15)
+        self.line_y2_entry.insert(0, "0")
+        self.line_y2_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        self.params_frame.columnconfigure(1, weight=1)
+
+    def create_polygon_parameters(self):
+        """Create parameter widgets for polygon."""
+        ttk.Label(self.params_frame, text="Number of sides:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.polygon_sides_entry = ttk.Entry(self.params_frame, width=15)
+        self.polygon_sides_entry.insert(0, "6")
+        self.polygon_sides_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Center X:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.polygon_x_entry = ttk.Entry(self.params_frame, width=15)
+        self.polygon_x_entry.insert(0, "0")
+        self.polygon_x_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Center Y:").grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.polygon_y_entry = ttk.Entry(self.params_frame, width=15)
+        self.polygon_y_entry.insert(0, "0")
+        self.polygon_y_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        ttk.Label(self.params_frame, text="Radius:").grid(row=3, column=0, sticky=tk.W, pady=2)
+        self.polygon_radius_entry = ttk.Entry(self.params_frame, width=15)
+        self.polygon_radius_entry.insert(0, "15")
+        self.polygon_radius_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+
+        self.params_frame.columnconfigure(1, weight=1)
+
+    def setup_layout(self):
+        """Configure the layout."""
+        # Configure main window
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+
+        # Configure main frame
+        self.main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=1)
+        self.main_frame.rowconfigure(2, weight=1)
+        self.main_frame.rowconfigure(3, weight=1)
+        self.main_frame.rowconfigure(4, weight=1)
+
+        # Layout frames
+        self.connection_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.type_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.params_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.button_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.progress_frame.grid(row=4, column=0, sticky=(tk.W, tk.E))
+
+        # Connection frame layout
+        self.connection_frame.columnconfigure(0, weight=1)
+        self.connect_button.grid(row=0, column=0, sticky=tk.W)
+        self.connection_status_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+
+        # Type frame layout
+        self.type_frame.columnconfigure(0, weight=1)
+        self.geometry_combo.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=5, pady=5)
+
+        # Button frame layout
+        self.button_frame.columnconfigure(0, weight=1)
+        self.button_frame.columnconfigure(1, weight=1)
+        self.button_frame.columnconfigure(2, weight=1)
+        self.create_button.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 2))
+        self.batch_create_button.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=2)
+        self.exit_button.grid(row=0, column=2, sticky=(tk.W, tk.E), padx=(2, 0))
+
+        # Progress frame layout
+        self.progress_frame.columnconfigure(0, weight=1)
+        self.progress_bar.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.progress_label.grid(row=1, column=0, sticky=tk.W)
+
+    def on_geometry_type_changed(self, event):
+        """Handle geometry type selection change."""
+        self.create_parameter_widgets()
+
+    def connect_to_autocad(self):
+        """Connect to AutoCAD application."""
+        self.operation_queue.put(("connect", None))
+
+    def create_geometry(self):
+        """Create single geometry object."""
+        geometry_type = self.geometry_type_var.get()
+        params = self.get_current_parameters()
+        self.operation_queue.put(("create_single", (geometry_type, params)))
+
+    def batch_create_geometry(self):
+        """Create multiple geometry objects."""
+        geometry_type = self.geometry_type_var.get()
+        params = self.get_current_parameters()
+        self.operation_queue.put(("create_batch", (geometry_type, params)))
+
+    def get_current_parameters(self) -> dict:
+        """Get current parameter values based on geometry type."""
+        geometry_type = self.geometry_type_var.get()
+
+        if geometry_type == "circle":
+            return {
+                "center_x": float(self.center_x_entry.get()),
+                "center_y": float(self.center_y_entry.get()),
+                "radius": float(self.radius_entry.get())
+            }
+        elif geometry_type == "rectangle":
+            return {
+                "x1": float(self.rect_x1_entry.get()),
+                "y1": float(self.rect_y1_entry.get()),
+                "x2": float(self.rect_x2_entry.get()),
+                "y2": float(self.rect_y2_entry.get())
+            }
+        elif geometry_type == "line":
+            return {
+                "x1": float(self.line_x1_entry.get()),
+                "y1": float(self.line_y1_entry.get()),
+                "x2": float(self.line_x2_entry.get()),
+                "y2": float(self.line_y2_entry.get())
+            }
+        elif geometry_type == "polygon":
+            return {
+                "sides": int(self.polygon_sides_entry.get()),
+                "center_x": float(self.polygon_x_entry.get()),
+                "center_y": float(self.polygon_y_entry.get()),
+                "radius": float(self.polygon_radius_entry.get())
+            }
+
+        return {}
+
+    def start_worker_thread(self):
+        """Start the background worker thread."""
+        self.worker_thread = threading.Thread(target=self.worker_loop, daemon=True)
+        self.worker_thread.start()
+
+    def worker_loop(self):
+        """Main worker thread loop."""
+        while self.is_running:
+            try:
+                operation, args = self.operation_queue.get(timeout=1)
+
+                if operation == "connect":
+                    self.perform_connect()
+                elif operation == "create_single":
+                    geometry_type, params = args
+                    self.perform_create_single(geometry_type, params)
+                elif operation == "create_batch":
+                    geometry_type, params = args
+                    self.perform_create_batch(geometry_type, params)
+
+                self.operation_queue.task_done()
+
+            except queue.Empty:
+                continue
+            except Exception as e:
+                self.logger.error(f"Worker thread error: {e}")
+                self.root.after(0, lambda: self.status_var.set(f"Error: {str(e)}"))
+
+    def perform_connect(self):
+        """Perform AutoCAD connection in worker thread."""
+        try:
+            self.root.after(0, lambda: self.status_var.set("Connecting to AutoCAD..."))
+
+            pythoncom.CoInitialize()
+
+            # Try to connect to existing instance
+            try:
+                self.acad_app = win32com.client.GetActiveObject("AutoCAD.Application")
+                self.logger.info("Connected to existing AutoCAD instance")
+            except:
+                self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
+                self.acad_app.Visible = True
+                self.logger.info("Started new AutoCAD instance")
+
+            self.connected = True
+
+            self.root.after(0, lambda: self.status_var.set("Connected to AutoCAD"))
+            self.root.after(0, lambda: self.create_button.config(state=tk.NORMAL))
+            self.root.after(0, lambda: self.batch_create_button.config(state=tk.NORMAL))
+
+        except Exception as e:
+            self.logger.error(f"Connection failed: {e}")
+            self.root.after(0, lambda: self.status_var.set(f"Connection failed: {str(e)}"))
+
+    def perform_create_single(self, geometry_type: str, params: dict):
+        """Create single geometry object."""
+        try:
+            self.root.after(0, lambda: self.progress_var.set(0))
+            self.root.after(0, lambda: self.status_var.set(f"Creating {geometry_type}..."))
+
+            if not self.connected:
+                raise RuntimeError("Not connected to AutoCAD")
+
+            # Create the geometry
+            self.create_geometry_in_autocad(geometry_type, params)
+
+            self.root.after(0, lambda: self.progress_var.set(100))
+            self.root.after(0, lambda: self.status_var.set(f"{geometry_type.capitalize()} created successfully"))
+
+        except Exception as e:
+            self.logger.error(f"Failed to create {geometry_type}: {e}")
+            self.root.after(0, lambda: self.status_var.set(f"Error creating {geometry_type}: {str(e)}"))
+
+    def perform_create_batch(self, geometry_type: str, params: dict):
+        """Create multiple geometry objects in batch."""
+        try:
+            self.root.after(0, lambda: self.progress_var.set(0))
+            self.root.after(0, lambda: self.status_var.set(f"Creating batch of {geometry_type}s..."))
+
+            if not self.connected:
+                raise RuntimeError("Not connected to AutoCAD")
+
+            # Create multiple instances
+            for i in range(5):
+                # Modify parameters for each instance
+                modified_params = params.copy()
+                if geometry_type == "circle":
+                    modified_params["center_x"] += i * 30
+                elif geometry_type == "rectangle":
+                    modified_params["x1"] += i * 30
+                    modified_params["x2"] += i * 30
+
+                self.create_geometry_in_autocad(geometry_type, modified_params)
+
+                # Update progress
+                progress = (i + 1) * 20
+                self.root.after(0, lambda p=progress: self.progress_var.set(p))
+
+            self.root.after(0, lambda: self.status_var.set(f"Batch creation completed"))
+
+        except Exception as e:
+            self.logger.error(f"Batch creation failed: {e}")
+            self.root.after(0, lambda: self.status_var.set(f"Batch creation error: {str(e)}"))
+
+    def create_geometry_in_autocad(self, geometry_type: str, params: dict):
+        """Create geometry in AutoCAD based on type and parameters."""
+        doc = self.acad_app.ActiveDocument
+        model_space = doc.ModelSpace
+
+        if geometry_type == "circle":
+            center = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                [params["center_x"], params["center_y"], 0.0]
+            )
+            model_space.AddCircle(center, params["radius"])
+
+        elif geometry_type == "rectangle":
+            # Create rectangle using lines or polyline
+            points = [
+                params["x1"], params["y1"], 0.0,
+                params["x2"], params["y1"], 0.0,
+                params["x2"], params["y2"], 0.0,
+                params["x1"], params["y2"], 0.0,
+                params["x1"], params["y1"], 0.0  # Close the rectangle
+            ]
+            coords = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                points
+            )
+            model_space.AddPolyline(coords)
+
+        elif geometry_type == "line":
+            start_point = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                [params["x1"], params["y1"], 0.0]
+            )
+            end_point = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                [params["x2"], params["y2"], 0.0]
+            )
+            model_space.AddLine(start_point, end_point)
+
+        elif geometry_type == "polygon":
+            # Create regular polygon
+            import math
+            center_x, center_y = params["center_x"], params["center_y"]
+            radius = params["radius"]
+            sides = params["sides"]
+
+            points = []
+            for i in range(sides + 1):  # +1 to close the polygon
+                angle = 2 * math.pi * i / sides
+                x = center_x + radius * math.cos(angle)
+                y = center_y + radius * math.sin(angle)
+                points.extend([x, y, 0.0])
+
+            coords = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                points
+            )
+            model_space.AddPolyline(coords)
+
+    def on_closing(self):
+        """Handle application closing."""
+        self.is_running = False
+        if self.worker_thread:
+            self.worker_thread.join(timeout=2)
+        self.root.quit()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AdvancedGeometryCreator(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_closing)
+    root.mainloop()
+      ]]>
+    </code>
+    <explanation>
+      This advanced example shows a comprehensive Tkinter application with multiple geometry types,
+      progress tracking, batch operations, and dynamic parameter panels. It demonstrates
+      professional-level UI design and robust AutoCAD integration.
+    </explanation>
+  </example>
+
+  <example name="autocad_file_manager">
+    <description>A Tkinter application for managing AutoCAD files and drawings</description>
+    <context>When you need to create file management tools for AutoCAD workflows</context>
+    <code language="python">
+      <![CDATA[
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import threading
+import os
+import win32com.client
+import pythoncom
+import logging
+from datetime import datetime
+
+class AutoCADFileManager:
+    """Tkinter application for managing AutoCAD files and drawings."""
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("AutoCAD File Manager")
+        self.root.geometry("700x500")
+
+        # AutoCAD connection
+        self.acad_app = None
+        self.connected = False
+
+        # File management
+        self.current_file_path = None
+        self.recent_files = []
+
+        # UI variables
+        self.status_var = tk.StringVar(value="Not connected")
+        self.current_file_var = tk.StringVar(value="No file open")
+
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+
+        # Create UI
+        self.create_widgets()
+        self.setup_layout()
+
+    def create_widgets(self):
+        """Create all UI widgets."""
+        # Main frame
+        self.main_frame = ttk.Frame(self.root, padding="10")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Connection section
+        self.connection_frame = ttk.LabelFrame(self.main_frame, text="AutoCAD Connection", padding="5")
+        self.connect_button = ttk.Button(self.connection_frame, text="Connect to AutoCAD",
+                                       command=self.connect_to_autocad)
+        self.connection_status_label = ttk.Label(self.connection_frame, textvariable=self.status_var)
+
+        # File operations section
+        self.file_frame = ttk.LabelFrame(self.main_frame, text="File Operations", padding="5")
+        self.new_button = ttk.Button(self.file_frame, text="New Drawing", command=self.new_drawing)
+        self.open_button = ttk.Button(self.file_frame, text="Open Drawing", command=self.open_drawing)
+        self.save_button = ttk.Button(self.file_frame, text="Save", command=self.save_drawing)
+        self.save_as_button = ttk.Button(self.file_frame, text="Save As", command=self.save_drawing_as)
+
+        # Current file info
+        self.info_frame = ttk.LabelFrame(self.main_frame, text="Current File", padding="5")
+        self.current_file_label = ttk.Label(self.info_frame, textvariable=self.current_file_var,
+                                          wraplength=400, justify=tk.LEFT)
+
+        # Drawing operations
+        self.operations_frame = ttk.LabelFrame(self.main_frame, text="Drawing Operations", padding="5")
+        self.zoom_extents_button = ttk.Button(self.operations_frame, text="Zoom Extents",
+                                            command=self.zoom_extents)
+        self.regen_button = ttk.Button(self.operations_frame, text="Regenerate", command=self.regenerate)
+        self.purge_button = ttk.Button(self.operations_frame, text="Purge Unused", command=self.purge_unused)
+
+        # Recent files section
+        self.recent_frame = ttk.LabelFrame(self.main_frame, text="Recent Files", padding="5")
+        self.recent_listbox = tk.Listbox(self.recent_frame, height=6, selectmode=tk.SINGLE)
+        self.recent_listbox.bind('<Double-Button-1>', self.on_recent_file_double_click)
+        self.refresh_recent_button = ttk.Button(self.recent_frame, text="Refresh",
+                                              command=self.load_recent_files)
+
+        # Status section
+        self.status_frame = ttk.Frame(self.main_frame)
+        self.status_label = ttk.Label(self.status_frame, textvariable=self.status_var)
+
+        # Disable buttons initially
+        self.set_button_states(False)
+
+    def setup_layout(self):
+        """Configure the layout."""
+        # Configure main window
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+
+        # Configure main frame
+        self.main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=1)
+        self.main_frame.rowconfigure(2, weight=1)
+        self.main_frame.rowconfigure(3, weight=1)
+        self.main_frame.rowconfigure(4, weight=1)
+
+        # Layout frames
+        self.connection_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.file_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.info_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.operations_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.recent_frame.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.status_frame.grid(row=5, column=0, sticky=(tk.W, tk.E), pady=(5, 0))
+
+        # Connection frame layout
+        self.connection_frame.columnconfigure(0, weight=1)
+        self.connect_button.grid(row=0, column=0, sticky=tk.W)
+        self.connection_status_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+
+        # File operations layout
+        self.file_frame.columnconfigure(0, weight=1)
+        self.file_frame.columnconfigure(1, weight=1)
+        self.file_frame.columnconfigure(2, weight=1)
+        self.file_frame.columnconfigure(3, weight=1)
+        self.new_button.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 2))
+        self.open_button.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=2)
+        self.save_button.grid(row=0, column=2, sticky=(tk.W, tk.E), padx=2)
+        self.save_as_button.grid(row=0, column=3, sticky=(tk.W, tk.E), padx=(2, 0))
+
+        # Current file info layout
+        self.info_frame.columnconfigure(0, weight=1)
+        self.current_file_label.grid(row=0, column=0, sticky=(tk.W, tk.E))
+
+        # Operations layout
+        self.operations_frame.columnconfigure(0, weight=1)
+        self.operations_frame.columnconfigure(1, weight=1)
+        self.operations_frame.columnconfigure(2, weight=1)
+        self.zoom_extents_button.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 2))
+        self.regen_button.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=2)
+        self.purge_button.grid(row=0, column=2, sticky=(tk.W, tk.E), padx=(2, 0))
+
+        # Recent files layout
+        self.recent_frame.columnconfigure(0, weight=1)
+        self.recent_frame.rowconfigure(0, weight=1)
+        self.recent_listbox.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 5))
+        self.refresh_recent_button.grid(row=1, column=0, sticky=(tk.W, tk.E))
+
+        # Status layout
+        self.status_frame.columnconfigure(0, weight=1)
+        self.status_label.grid(row=0, column=0, sticky=(tk.W, tk.E))
+
+    def set_button_states(self, enabled: bool):
+        """Enable or disable operation buttons."""
+        state = tk.NORMAL if enabled else tk.DISABLED
+        self.new_button.config(state=state)
+        self.open_button.config(state=state)
+        self.save_button.config(state=state)
+        self.save_as_button.config(state=state)
+        self.zoom_extents_button.config(state=state)
+        self.regen_button.config(state=state)
+        self.purge_button.config(state=state)
+
+    def connect_to_autocad(self):
+        """Connect to AutoCAD application."""
+        def connect():
+            try:
+                self.root.after(0, lambda: self.status_var.set("Connecting to AutoCAD..."))
+
+                pythoncom.CoInitialize()
+
+                # Try to connect to existing instance
+                try:
+                    self.acad_app = win32com.client.GetActiveObject("AutoCAD.Application")
+                    self.logger.info("Connected to existing AutoCAD instance")
+                except:
+                    self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
+                    self.acad_app.Visible = True
+                    self.logger.info("Started new AutoCAD instance")
+
+                self.connected = True
+
+                # Load recent files and update UI
+                self.load_recent_files()
+                self.update_current_file_info()
+
+                self.root.after(0, lambda: self.status_var.set("Connected to AutoCAD"))
+                self.root.after(0, lambda: self.set_button_states(True))
+
+            except Exception as e:
+                self.logger.error(f"Connection failed: {e}")
+                self.root.after(0, lambda: self.status_var.set(f"Connection failed: {str(e)}"))
+
+        # Run connection in background thread
+        thread = threading.Thread(target=connect, daemon=True)
+        thread.start()
+
+    def new_drawing(self):
+        """Create a new AutoCAD drawing."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        def create_new():
+            try:
+                self.root.after(0, lambda: self.status_var.set("Creating new drawing..."))
+
+                # Create new document
+                self.acad_app.Documents.Add()
+                self.current_file_path = None
+                self.update_current_file_info()
+
+                self.root.after(0, lambda: self.status_var.set("New drawing created"))
+
+            except Exception as e:
+                self.logger.error(f"Failed to create new drawing: {e}")
+                self.root.after(0, lambda: self.status_var.set(f"Error: {str(e)}"))
+
+        thread = threading.Thread(target=create_new, daemon=True)
+        thread.start()
+
+    def open_drawing(self):
+        """Open an existing AutoCAD drawing."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        file_path = filedialog.askopenfilename(
+            title="Open AutoCAD Drawing",
+            filetypes=[("AutoCAD files", "*.dwg"), ("All files", "*.*")]
+        )
+
+        if file_path:
+            def open_file():
+                try:
+                    self.root.after(0, lambda: self.status_var.set(f"Opening {os.path.basename(file_path)}..."))
+
+                    # Open the drawing
+                    self.acad_app.Documents.Open(file_path)
+                    self.current_file_path = file_path
+                    self.update_current_file_info()
+                    self.load_recent_files()
+
+                    self.root.after(0, lambda: self.status_var.set("Drawing opened successfully"))
+
+                except Exception as e:
+                    self.logger.error(f"Failed to open drawing: {e}")
+                    self.root.after(0, lambda: self.status_var.set(f"Error opening drawing: {str(e)}"))
+
+            thread = threading.Thread(target=open_file, daemon=True)
+            thread.start()
+
+    def save_drawing(self):
+        """Save the current AutoCAD drawing."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        if not self.current_file_path:
+            self.save_drawing_as()
+            return
+
+        def save_file():
+            try:
+                self.root.after(0, lambda: self.status_var.set("Saving drawing..."))
+
+                # Save the current document
+                self.acad_app.ActiveDocument.Save()
+
+                self.root.after(0, lambda: self.status_var.set("Drawing saved successfully"))
+
+            except Exception as e:
+                self.logger.error(f"Failed to save drawing: {e}")
+                self.root.after(0, lambda: self.status_var.set(f"Error saving drawing: {str(e)}"))
+
+        thread = threading.Thread(target=save_file, daemon=True)
+        thread.start()
+
+    def save_drawing_as(self):
+        """Save the current AutoCAD drawing with a new name."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            title="Save AutoCAD Drawing As",
+            defaultextension=".dwg",
+            filetypes=[("AutoCAD files", "*.dwg"), ("All files", "*.*")]
+        )
+
+        if file_path:
+            def save_as():
+                try:
+                    self.root.after(0, lambda: self.status_var.set(f"Saving as {os.path.basename(file_path)}..."))
+
+                    # Save with new name
+                    self.acad_app.ActiveDocument.SaveAs(file_path)
+                    self.current_file_path = file_path
+                    self.update_current_file_info()
+                    self.load_recent_files()
+
+                    self.root.after(0, lambda: self.status_var.set("Drawing saved successfully"))
+
+                except Exception as e:
+                    self.logger.error(f"Failed to save drawing: {e}")
+                    self.root.after(0, lambda: self.status_var.set(f"Error saving drawing: {str(e)}"))
+
+            thread = threading.Thread(target=save_as, daemon=True)
+            thread.start()
+
+    def zoom_extents(self):
+        """Zoom to extents in the current drawing."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        def zoom():
+            try:
+                self.root.after(0, lambda: self.status_var.set("Zooming to extents..."))
+
+                # Send zoom extents command
+                self.acad_app.ActiveDocument.SendCommand("ZOOM E ")
+
+                self.root.after(0, lambda: self.status_var.set("Zoom extents completed"))
+
+            except Exception as e:
+                self.logger.error(f"Failed to zoom extents: {e}")
+                self.root.after(0, lambda: self.status_var.set(f"Error: {str(e)}"))
+
+        thread = threading.Thread(target=zoom, daemon=True)
+        thread.start()
+
+    def regenerate(self):
+        """Regenerate the current drawing."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        def regen():
+            try:
+                self.root.after(0, lambda: self.status_var.set("Regenerating drawing..."))
+
+                # Send regenerate command
+                self.acad_app.ActiveDocument.SendCommand("REGEN ")
+
+                self.root.after(0, lambda: self.status_var.set("Regeneration completed"))
+
+            except Exception as e:
+                self.logger.error(f"Failed to regenerate: {e}")
+                self.root.after(0, lambda: self.status_var.set(f"Error: {str(e)}"))
+
+        thread = threading.Thread(target=regen, daemon=True)
+        thread.start()
+
+    def purge_unused(self):
+        """Purge unused objects from the current drawing."""
+        if not self.connected:
+            messagebox.showerror("Error", "Not connected to AutoCAD")
+            return
+
+        def purge():
+            try:
+                self.root.after(0, lambda: self.status_var.set("Purging unused objects..."))
+
+                # Send purge command
+                self.acad_app.ActiveDocument.SendCommand("PURGE ALL *

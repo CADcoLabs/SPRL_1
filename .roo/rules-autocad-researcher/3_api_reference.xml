@@ -1,0 +1,117 @@
+<api_reference>
+  <com_interfaces>
+    <interface name="AcadApplication">
+      <description>Main AutoCAD application interface</description>
+      <methods>
+        <method name="ActiveDocument">
+          <signature>Property ActiveDocument As AcadDocument</signature>
+          <description>Gets the currently active document</description>
+          <parameters></parameters>
+          <returns>AcadDocument object</returns>
+          <notes>Read-only property</notes>
+        </method>
+        <method name="Documents">
+          <signature>Property Documents As AcadDocuments</signature>
+          <description>Gets the documents collection</description>
+          <parameters></parameters>
+          <returns>AcadDocuments collection</returns>
+          <notes>Read-only property</notes>
+        </method>
+      </methods>
+    </interface>
+
+    <interface name="AcadDocument">
+      <description>AutoCAD document interface</description>
+      <methods>
+        <method name="ModelSpace">
+          <signature>Property ModelSpace As AcadModelSpace</signature>
+          <description>Gets the model space</description>
+          <parameters></parameters>
+          <returns>AcadModelSpace object</returns>
+          <notes>Read-only property</notes>
+        </method>
+        <method name="ActiveLayer">
+          <signature>Property ActiveLayer As AcadLayer</signature>
+          <description>Gets or sets the active layer</description>
+          <parameters></parameters>
+          <returns>AcadLayer object</returns>
+          <notes>Read/write property</notes>
+        </method>
+      </methods>
+    </interface>
+
+    <interface name="AcadModelSpace">
+      <description>Model space interface for creating entities</description>
+      <methods>
+        <method name="AddCircle">
+          <signature>Function AddCircle(Center As Variant, Radius As Double) As AcadCircle</signature>
+          <description>Adds a circle to the model space</description>
+          <parameters>
+            <param name="Center" type="Variant">Center point as array [x, y, z]</param>
+            <param name="Radius" type="Double">Circle radius</param>
+          </parameters>
+          <returns>AcadCircle object</returns>
+          <notes>Center must be VARIANT array of doubles</notes>
+        </method>
+        <method name="AddLine">
+          <signature>Function AddLine(StartPoint As Variant, EndPoint As Variant) As AcadLine</signature>
+          <description>Adds a line to the model space</description>
+          <parameters>
+            <param name="StartPoint" type="Variant">Start point as array [x, y, z]</param>
+            <param name="EndPoint" type="Variant">End point as array [x, y, z]</param>
+          </parameters>
+          <returns>AcadLine object</returns>
+          <notes>Points must be VARIANT arrays of doubles</notes>
+        </method>
+      </methods>
+    </interface>
+  </com_interfaces>
+
+  <error_codes>
+    <error code="-2147352567">
+      <description>COM error - Invalid parameter or method call</description>
+      <causes>
+        <cause>Incorrect parameter types</cause>
+        <cause>Missing required parameters</cause>
+        <cause>Invalid VARIANT array format</cause>
+      </causes>
+      <solutions>
+        <solution>Verify parameter types match API requirements</solution>
+        <solution>Use pythoncom.VT_ARRAY and pythoncom.VT_R8 for coordinates</solution>
+        <solution>Ensure VARIANT arrays are properly formatted</solution>
+      </solutions>
+    </error>
+  </error_codes>
+
+  <implementation_patterns>
+    <pattern name="coordinate_conversion">
+      <description>Convert Python lists to AutoCAD VARIANT arrays</description>
+      <python_code>
+import pythoncom
+import array
+
+def to_variant_point(point_list):
+    """Convert [x, y, z] to VARIANT array for AutoCAD"""
+    return pythoncom.VT_ARRAY | pythoncom.VT_R8, array.array('d', point_list)
+      </python_code>
+    </pattern>
+
+    <pattern name="com_initialization">
+      <description>Proper COM initialization for AutoCAD</description>
+      <python_code>
+import pythoncom
+import win32com.client
+
+def initialize_autocad():
+    """Initialize COM and create AutoCAD application"""
+    pythoncom.CoInitialize()
+    try:
+        acad = win32com.client.Dispatch("AutoCAD.Application")
+        return acad
+    except Exception as e:
+        print(f"Failed to initialize AutoCAD: {e}")
+        return None
+      </python_code>
+    </pattern>
+  </implementation_patterns>
+</api_reference>

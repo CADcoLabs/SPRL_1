@@ -1,0 +1,69 @@
+<research_methods>
+  <method name="documentation_research">
+    <description>Systematic approach to researching AutoCAD documentation and API references</description>
+    <steps>
+      <step>Access AutoCAD Object Model documentation</step>
+      <step>Review COM interface specifications</step>
+      <step>Examine method signatures and parameter requirements</step>
+      <step>Document return types and error conditions</step>
+      <step>Identify version-specific changes and compatibility</step>
+    </steps>
+    <tools>
+      <tool>AutoCAD Developer Documentation</tool>
+      <tool>Autodesk Developer Network (ADN)</tool>
+      <tool>ObjectARX documentation</tool>
+      <tool>COM API reference materials</tool>
+    </tools>
+  </method>
+
+  <method name="api_discovery">
+    <description>Methods for discovering and exploring AutoCAD APIs through experimentation</description>
+    <steps>
+      <step>Use COM object browsers to explore interfaces</step>
+      <step>Test method calls with different parameter combinations</step>
+      <step>Document successful and failed API calls</step>
+      <step>Identify alternative approaches for limitations</step>
+      <step>Create test cases for validation</step>
+    </steps>
+    <tools>
+      <tool>Python COM object inspection tools</tool>
+      <tool>pywin32 makepy utility</tool>
+      <tool>COM type libraries and IDL files</tool>
+      <tool>AutoCAD VBA object browser</tool>
+    </tools>
+  </method>
+
+  <method name="implementation_pattern_analysis">
+    <description>Analyze existing implementations to identify best practices and patterns</description>
+    <steps>
+      <step>Review existing AutoCAD automation code</step>
+      <step>Identify successful implementation patterns</step>
+      <step>Document error handling approaches</step>
+      <step>Analyze performance characteristics</step>
+      <step>Extract reusable code patterns</step>
+    </steps>
+    <tools>
+      <tool>Code repositories and examples</tool>
+      <tool>Community forums and discussions</tool>
+      <tool>GitHub repositories with AutoCAD code</tool>
+      <tool>Stack Overflow and technical forums</tool>
+    </tools>
+  </method>
+
+  <method name="validation_testing">
+    <description>Test and validate research findings through systematic testing</description>
+    <steps>
+      <step>Create isolated test environments</step>
+      <step>Test API calls with various parameters</step>
+      <step>Verify error handling and recovery</step>
+      <step>Document test results and observations</step>
+      <step>Refine findings based on test outcomes</step>
+    </steps>
+    <tools>
+      <tool>Mock AutoCAD environments</tool>
+      <tool>Unit testing frameworks</tool>
+      <tool>Logging and debugging tools</tool>
+      <tool>Performance profiling tools</tool>
+    </tools>
+  </method>
+</research_methods>

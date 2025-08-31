@@ -1,0 +1,583 @@
+<implementation_patterns>
+  <pattern_category name="application_structure">
+    <description>Best practices for organizing Tkinter application architecture</description>
+
+    <pattern name="main_application_class">
+      <description>Structured main application class with proper initialization</description>
+      <code_example>
+        <![CDATA[
+import tkinter as tk
+from tkinter import ttk
+import threading
+import queue
+import logging
+
+class TkinterAutoCADApp:
+    """Main application class for Tkinter GUI with AutoCAD integration."""
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("AutoCAD Integration Tool")
+        self.root.geometry("800x600")
+
+        # Threading components
+        self.operation_queue = queue.Queue()
+        self.worker_thread = None
+        self.is_running = True
+
+        # AutoCAD connection (will be initialized later)
+        self.acad_app = None
+
+        # Setup logging
+        self.setup_logging()
+
+        # Create UI components
+        self.create_widgets()
+        self.setup_layout()
+
+        # Start background thread for queue processing
+        self.start_background_worker()
+
+    def setup_logging(self):
+        """Configure logging for the application."""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('autocad_gui.log'),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger(__name__)
+
+    def create_widgets(self):
+        """Create all UI widgets."""
+        # Main container
+        self.main_frame = ttk.Frame(self.root, padding="10")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        # Status bar
+        self.status_var = tk.StringVar(value="Ready")
+        self.status_bar = ttk.Label(
+            self.root,
+            textvariable=self.status_var,
+            relief=tk.SUNKEN,
+            anchor=tk.W
+        )
+
+        # Progress bar
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(
+            self.root,
+            variable=self.progress_var,
+            maximum=100
+        )
+
+    def setup_layout(self):
+        """Configure layout management."""
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+
+        # Configure main frame
+        self.main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(0, weight=1)
+
+        # Position status bar and progress bar
+        self.status_bar.grid(row=1, column=0, sticky=(tk.W, tk.E))
+        self.progress_bar.grid(row=2, column=0, sticky=(tk.W, tk.E))
+
+    def start_background_worker(self):
+        """Start background thread for processing operations."""
+        def worker():
+            while self.is_running:
+                try:
+                    operation = self.operation_queue.get(timeout=1)
+                    self.execute_operation(operation)
+                    self.operation_queue.task_done()
+                except queue.Empty:
+                    continue
+                except Exception as e:
+                    self.logger.error(f"Worker thread error: {e}")
+
+        self.worker_thread = threading.Thread(target=worker, daemon=True)
+        self.worker_thread.start()
+
+    def execute_operation(self, operation):
+        """Execute an operation in the background thread."""
+        try:
+            operation()
+        except Exception as e:
+            self.logger.error(f"Operation failed: {e}")
+            # Update UI with error message
+            self.root.after(0, lambda: self.status_var.set(f"Error: {str(e)}"))
+
+    def on_closing(self):
+        """Handle application closing."""
+        self.is_running = False
+        if self.worker_thread:
+            self.worker_thread.join(timeout=2)
+        self.root.destroy()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = TkinterAutoCADApp(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_closing)
+    root.mainloop()
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Use class-based structure for better organization</practice>
+        <practice>Implement proper logging from the start</practice>
+        <practice>Set up threading infrastructure early</practice>
+        <practice>Use StringVar/DoubleVar for reactive UI updates</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+
+  <pattern_category name="autocad_threading">
+    <description>Thread-safe patterns for AutoCAD COM operations</description>
+
+    <pattern name="thread_safe_autocad_operations">
+      <description>Safe threading pattern for AutoCAD COM calls</description>
+      <code_example>
+        <![CDATA[
+import threading
+import pythoncom
+import win32com.client
+from typing import Callable, Any
+
+class AutoCADThreadManager:
+    """Manages thread-safe AutoCAD operations."""
+
+    def __init__(self):
+        self.com_lock = threading.Lock()
+        self.acad_app = None
+        self.acad_doc = None
+        self.connected = False
+
+    def initialize_com(self):
+        """Initialize COM in the current thread."""
+        with self.com_lock:
+            try:
+                pythoncom.CoInitialize()
+                return True
+            except Exception as e:
+                print(f"COM initialization failed: {e}")
+                return False
+
+    def connect_autocad(self):
+        """Connect to AutoCAD application."""
+        with self.com_lock:
+            try:
+                if not self.initialize_com():
+                    return False
+
+                # Try to connect to existing instance
+                try:
+                    self.acad_app = win32com.client.GetActiveObject("AutoCAD.Application")
+                except:
+                    self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
+                    self.acad_app.Visible = True
+
+                self.acad_doc = self.acad_app.ActiveDocument
+                self.connected = True
+                return True
+
+            except Exception as e:
+                print(f"AutoCAD connection failed: {e}")
+                return False
+
+    def execute_autocad_command(self, command_func: Callable, *args, **kwargs) -> Any:
+        """Execute an AutoCAD command in a thread-safe manner."""
+        result = [None]
+        error = [None]
+
+        def _execute():
+            try:
+                with self.com_lock:
+                    if not self.connected and not self.connect_autocad():
+                        raise RuntimeError("Failed to connect to AutoCAD")
+
+                    result[0] = command_func(*args, **kwargs)
+
+            except Exception as e:
+                error[0] = e
+
+        # Execute in a separate thread to avoid blocking UI
+        thread = threading.Thread(target=_execute, daemon=True)
+        thread.start()
+        thread.join()  # Wait for completion
+
+        if error[0]:
+            raise error[0]
+
+        return result[0]
+
+    def create_line_example(self, start_point: tuple, end_point: tuple):
+        """Example: Create a line in AutoCAD."""
+        def _create_line():
+            model_space = self.acad_doc.ModelSpace
+
+            # Convert points to VARIANT arrays
+            start_variant = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                [start_point[0], start_point[1], start_point[2] if len(start_point) > 2 else 0]
+            )
+            end_variant = win32com.client.VARIANT(
+                pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                [end_point[0], end_point[1], end_point[2] if len(end_point) > 2 else 0]
+            )
+
+            # Create the line
+            line = model_space.AddLine(start_variant, end_variant)
+            return line
+
+        return self.execute_autocad_command(_create_line)
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Use threading.Lock for COM operations</practice>
+        <practice>Initialize COM in each thread that uses it</practice>
+        <practice>Use daemon threads for background operations</practice>
+        <practice>Handle COM exceptions gracefully</practice>
+      </best_practices>
+    </pattern>
+
+    <pattern name="progress_updating_pattern">
+      <description>Pattern for updating UI progress during long operations</description>
+      <code_example>
+        <![CDATA[
+class ProgressCallback:
+    """Handles progress updates from background operations."""
+
+    def __init__(self, progress_var, status_var, root):
+        self.progress_var = progress_var
+        self.status_var = status_var
+        self.root = root
+        self.current_progress = 0
+
+    def update_progress(self, value: float, message: str = ""):
+        """Update progress from background thread."""
+        def _update():
+            self.progress_var.set(value)
+            if message:
+                self.status_var.set(message)
+
+        self.root.after(0, _update)
+
+    def increment_progress(self, increment: float, message: str = ""):
+        """Increment progress by a specified amount."""
+        self.current_progress += increment
+        self.update_progress(self.current_progress, message)
+
+def execute_with_progress(root, progress_var, status_var, operation, *args, **kwargs):
+    """Execute an operation with progress updates."""
+    callback = ProgressCallback(progress_var, status_var, root)
+
+    def background_operation():
+        try:
+            callback.update_progress(0, "Starting operation...")
+
+            # Execute the operation with progress updates
+            result = operation(callback, *args, **kwargs)
+
+            callback.update_progress(100, "Operation completed")
+            return result
+
+        except Exception as e:
+            callback.update_progress(0, f"Error: {str(e)}")
+            raise
+
+    # Run in background thread
+    thread = threading.Thread(target=background_operation, daemon=True)
+    thread.start()
+
+# Example usage in a Tkinter button callback
+def on_create_geometry_click(self):
+    """Handle button click to create geometry with progress."""
+    def create_geometry_operation(callback):
+        # Simulate progress updates during AutoCAD operations
+        callback.update_progress(10, "Connecting to AutoCAD...")
+
+        # Connect to AutoCAD
+        if not self.autocad_manager.connect_autocad():
+            raise RuntimeError("Failed to connect to AutoCAD")
+
+        callback.update_progress(30, "Creating geometry...")
+
+        # Create multiple geometric entities
+        for i in range(10):
+            # Create geometry here
+            self.autocad_manager.create_line_example((0, i*10, 0), (100, i*10, 0))
+            callback.increment_progress(6, f"Created entity {i+1}/10")
+
+        callback.update_progress(90, "Finalizing...")
+
+        # Any finalization steps
+        callback.update_progress(100, "Complete")
+
+    execute_with_progress(
+        self.root,
+        self.progress_var,
+        self.status_var,
+        create_geometry_operation
+    )
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Use root.after() for thread-safe UI updates</practice>
+        <practice>Provide meaningful progress messages</practice>
+        <practice>Handle errors gracefully in background operations</practice>
+        <practice>Use daemon threads to prevent blocking on exit</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+
+  <pattern_category name="layout_management">
+    <description>Advanced layout patterns for responsive Tkinter UIs</description>
+
+    <pattern name="responsive_grid_layout">
+      <description>Grid-based layout with responsive behavior</description>
+      <code_example>
+        <![CDATA[
+class ResponsiveFrame(ttk.Frame):
+    """A frame that adapts its layout based on available space."""
+
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.parent = parent
+
+        # Configure responsive behavior
+        self.bind('<Configure>', self.on_resize)
+
+        # Track current layout mode
+        self.layout_mode = 'normal'  # 'normal', 'compact', 'minimal'
+
+    def on_resize(self, event):
+        """Handle window resize events."""
+        width = event.width
+        height = event.height
+
+        # Determine layout mode based on size
+        if width < 400:
+            new_mode = 'minimal'
+        elif width < 600:
+            new_mode = 'compact'
+        else:
+            new_mode = 'normal'
+
+        if new_mode != self.layout_mode:
+            self.layout_mode = new_mode
+            self.reconfigure_layout()
+
+    def reconfigure_layout(self):
+        """Reconfigure widgets based on current layout mode."""
+        # Clear existing layout
+        for child in self.winfo_children():
+            child.grid_forget()
+
+        if self.layout_mode == 'minimal':
+            self.configure_minimal_layout()
+        elif self.layout_mode == 'compact':
+            self.configure_compact_layout()
+        else:
+            self.configure_normal_layout()
+
+    def configure_normal_layout(self):
+        """Normal layout for larger screens."""
+        # Example widget placement
+        ttk.Label(self, text="Parameter 1:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        self.param1_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5, pady=5)
+
+        ttk.Label(self, text="Parameter 2:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+        self.param2_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=5, pady=5)
+
+        # Configure column weights
+        self.columnconfigure(1, weight=1)
+
+    def configure_compact_layout(self):
+        """Compact layout for medium screens."""
+        # Stack labels and entries vertically
+        ttk.Label(self, text="Parameter 1:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
+        self.param1_entry.grid(row=1, column=0, sticky=(tk.W, tk.E), padx=5, pady=2)
+
+        ttk.Label(self, text="Parameter 2:").grid(row=2, column=0, sticky=tk.W, padx=5, pady=2)
+        self.param2_entry.grid(row=3, column=0, sticky=(tk.W, tk.E), padx=5, pady=2)
+
+        # Single column layout
+        self.columnconfigure(0, weight=1)
+
+    def configure_minimal_layout(self):
+        """Minimal layout for small screens."""
+        # Very compact layout
+        ttk.Label(self, text="P1:").grid(row=0, column=0, sticky=tk.W, padx=2, pady=2)
+        self.param1_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=2, pady=2)
+
+        ttk.Label(self, text="P2:").grid(row=1, column=0, sticky=tk.W, padx=2, pady=2)
+        self.param2_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=2, pady=2)
+
+        # Equal column weights
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+
+class InputPanel(ResponsiveFrame):
+    """Input panel with responsive parameter entry."""
+
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+
+        # Create input widgets
+        self.param1_entry = ttk.Entry(self)
+        self.param2_entry = ttk.Entry(self)
+
+        # Set initial layout
+        self.reconfigure_layout()
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Bind to <Configure> event for responsive design</practice>
+        <practice>Use columnconfigure/rowconfigure for proper expansion</practice>
+        <practice>Implement multiple layout modes for different screen sizes</practice>
+        <practice>Test layouts at various window sizes</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+
+  <pattern_category name="error_handling">
+    <description>Comprehensive error handling patterns for Tkinter applications</description>
+
+    <pattern name="user_friendly_error_handling">
+      <description>Display errors to users in a friendly manner</description>
+      <code_example>
+        <![CDATA[
+import tkinter.messagebox as messagebox
+import traceback
+import logging
+
+class ErrorHandler:
+    """Centralized error handling for Tkinter applications."""
+
+    def __init__(self, root, logger=None):
+        self.root = root
+        self.logger = logger or logging.getLogger(__name__)
+
+    def handle_error(self, error: Exception, context: str = ""):
+        """Handle an error with user-friendly display."""
+        # Log the full error
+        self.logger.error(f"Error in {context}: {error}")
+        self.logger.error(traceback.format_exc())
+
+        # Create user-friendly error message
+        error_message = self.format_error_message(error, context)
+
+        # Show error dialog
+        def show_error():
+            messagebox.showerror("Error", error_message)
+
+        self.root.after(0, show_error)
+
+    def format_error_message(self, error: Exception, context: str = "") -> str:
+        """Format error message for user display."""
+        error_type = type(error).__name__
+
+        # Handle specific error types
+        if "COM" in str(error) or "win32com" in str(error):
+            return self.format_com_error(error, context)
+        elif isinstance(error, ValueError):
+            return self.format_value_error(error, context)
+        elif isinstance(error, ConnectionError):
+            return self.format_connection_error(error, context)
+        else:
+            return self.format_generic_error(error, context)
+
+    def format_com_error(self, error: Exception, context: str) -> str:
+        """Format COM-specific errors."""
+        if "connection" in str(error).lower():
+            return f"Failed to connect to AutoCAD. Please ensure AutoCAD is running and try again."
+        elif "-2147352567" in str(error):
+            return f"AutoCAD operation failed due to invalid parameters. Please check your input values."
+        else:
+            return f"AutoCAD operation failed: {str(error)}. Please check the application logs for details."
+
+    def format_value_error(self, error: Exception, context: str) -> str:
+        """Format value validation errors."""
+        return f"Invalid input value: {str(error)}. Please check your entries and try again."
+
+    def format_connection_error(self, error: Exception, context: str) -> str:
+        """Format connection-related errors."""
+        return f"Connection failed: {str(error)}. Please check your network connection and try again."
+
+    def format_generic_error(self, error: Exception, context: str) -> str:
+        """Format generic errors."""
+        context_msg = f" in {context}" if context else ""
+        return f"An unexpected error occurred{context_msg}. Please check the application logs for details."
+
+class ValidatedEntry(ttk.Entry):
+    """Entry widget with built-in validation."""
+
+    def __init__(self, parent, validator=None, error_handler=None, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.validator = validator
+        self.error_handler = error_handler
+        self.error_var = tk.StringVar()
+
+        # Bind validation
+        self.bind('<FocusOut>', self.on_validate)
+        self.bind('<KeyRelease>', self.on_validate)
+
+    def on_validate(self, event=None):
+        """Validate input and display errors."""
+        if self.validator:
+            try:
+                value = self.get()
+                self.validator(value)
+                self.error_var.set("")  # Clear error
+                self.config(foreground='black')  # Normal text color
+            except Exception as e:
+                self.error_var.set(str(e))
+                self.config(foreground='red')  # Error text color
+                if self.error_handler:
+                    self.error_handler.handle_error(e, "input validation")
+
+    def get_validated_value(self):
+        """Get value with validation."""
+        if self.error_var.get():
+            raise ValueError(self.error_var.get())
+        return self.get()
+
+# Example usage
+def validate_coordinate(value: str) -> float:
+    """Validate coordinate input."""
+    try:
+        coord = float(value)
+        if not (-10000 <= coord <= 10000):
+            raise ValueError("Coordinate must be between -10000 and 10000")
+        return coord
+    except ValueError:
+        raise ValueError("Please enter a valid number")
+
+# In main application
+error_handler = ErrorHandler(root, logger)
+
+# Create validated entry
+x_entry = ValidatedEntry(
+    input_frame,
+    validator=validate_coordinate,
+    error_handler=error_handler
+)
+x_entry.grid(row=0, column=1, sticky=(tk.W, tk.E))
+
+# Error label
+error_label = ttk.Label(input_frame, textvariable=x_entry.error_var, foreground='red')
+error_label.grid(row=1, column=1, sticky=tk.W)
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Use custom exception classes for different error types</practice>
+        <practice>Provide user-friendly error messages without technical details</practice>
+        <practice>Log full error details for debugging</practice>
+        <practice>Implement input validation at the widget level</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+</implementation_patterns>

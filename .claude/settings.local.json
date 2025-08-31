@@ -22,7 +22,9 @@
       "Bash(pip3:*)",
       "Bash(sudo apt:*)",
       "Bash(pip --version)",
-      "Bash(qwen:*)"
+      "Bash(qwen:*)",
+      "Read(/home/barry/.local/bin/**)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": [],

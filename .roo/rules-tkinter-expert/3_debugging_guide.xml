@@ -1,0 +1,539 @@
+<debugging_guide>
+  <introduction>
+    This guide provides comprehensive debugging strategies for Tkinter applications,
+    particularly those integrating with AutoCAD via COM. It covers common issues,
+    debugging techniques, and troubleshooting patterns.
+  </introduction>
+
+  <common_issues>
+    <issue category="ui_freezing">
+      <description>UI becomes unresponsive during long operations</description>
+      <symptoms>
+        <symptom>Window stops responding to user input</symptom>
+        <symptom>Application appears frozen or hung</symptom>
+        <symptom>No progress updates during AutoCAD operations</symptom>
+      </symptoms>
+      <root_causes>
+        <cause>Blocking AutoCAD COM calls in main thread</cause>
+        <cause>Long-running operations without threading</cause>
+        <cause>COM operations not properly isolated</cause>
+      </root_causes>
+      <debugging_steps>
+        <step>Use threading for AutoCAD operations</step>
+        <step>Implement progress callbacks with root.after()</step>
+        <step>Use queue.Queue for thread communication</step>
+        <step>Add timeout handling for COM operations</step>
+      </debugging_steps>
+      <code_fix>
+        <![CDATA[
+# Incorrect - blocks UI
+def on_button_click(self):
+    self.create_autocad_geometry()  # This blocks the UI
+
+# Correct - uses threading
+def on_button_click(self):
+    def background_task():
+        try:
+            self.create_autocad_geometry()
+            self.root.after(0, lambda: self.status_var.set("Complete"))
+        except Exception as e:
+            self.root.after(0, lambda: self.status_var.set(f"Error: {e}"))
+
+    thread = threading.Thread(target=background_task, daemon=True)
+    thread.start()
+        ]]>
+      </code_fix>
+    </issue>
+
+    <issue category="com_errors">
+      <description>AutoCAD COM integration failures</description>
+      <symptoms>
+        <symptom>COM object errors (-2147352567)</symptom>
+        <symptom>AutoCAD connection failures</symptom>
+        <symptom>Invalid parameter errors</symptom>
+        <symptom>Threading issues with COM objects</symptom>
+      </symptoms>
+      <debugging_steps>
+        <step>Verify AutoCAD is running and accessible</step>
+        <step>Check COM initialization with pythoncom.CoInitialize()</step>
+        <step>Validate parameter types and VARIANT conversions</step>
+        <step>Use try/catch blocks around all COM operations</step>
+        <step>Log HRESULT values for specific error diagnosis</step>
+      </debugging_steps>
+      <code_fix>
+        <![CDATA[
+def debug_com_operation(self):
+    """Debug wrapper for COM operations."""
+    try:
+        # Ensure COM is initialized
+        pythoncom.CoInitialize()
+
+        # Try to connect to AutoCAD
+        try:
+            self.acad_app = win32com.client.GetActiveObject("AutoCAD.Application")
+            print("Connected to existing AutoCAD instance")
+        except:
+            self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
+            self.acad_app.Visible = True
+            print("Started new AutoCAD instance")
+
+        # Test basic operations
+        doc = self.acad_app.ActiveDocument
+        print(f"Active document: {doc.Name}")
+
+        return True
+
+    except Exception as e:
+        print(f"COM Error: {e}")
+        print(f"Error type: {type(e)}")
+        if hasattr(e, 'hresult'):
+            print(f"HRESULT: {e.hresult}")
+        return False
+        ]]>
+      </code_fix>
+    </issue>
+
+    <issue category="layout_problems">
+      <description>Widget layout and positioning issues</description>
+      <symptoms>
+        <symptom>Widgets not appearing where expected</symptom>
+        <symptom>Incorrect widget sizing or spacing</symptom>
+        <symptom>Layout not responding to window resize</symptom>
+        <symptom>Widgets overlapping or misaligned</symptom>
+      </symptoms>
+      <debugging_steps>
+        <step>Check grid/pack/place usage consistency</step>
+        <step>Verify columnconfigure/rowconfigure settings</step>
+        <step>Use sticky options correctly</step>
+        <step>Test layout at different window sizes</step>
+        <step>Use padx/pady for proper spacing</step>
+      </debugging_steps>
+      <code_fix>
+        <![CDATA[
+def debug_layout(self, frame):
+    """Debug layout configuration."""
+    print(f"Frame geometry: {frame.winfo_geometry()}")
+    print(f"Frame requested size: {frame.winfo_reqwidth()}x{frame.winfo_reqheight()}")
+
+    # Check grid configuration
+    for i in range(frame.grid_size()[0]):
+        weight = frame.grid_columnconfigure(i, 'weight')
+        print(f"Column {i} weight: {weight}")
+
+    for i in range(frame.grid_size()[1]):
+        weight = frame.grid_rowconfigure(i, 'weight')
+        print(f"Row {i} weight: {weight}")
+
+    # Check widget positions
+    for child in frame.winfo_children():
+        info = child.grid_info()
+        print(f"Widget {child.winfo_class()}: {info}")
+
+# Correct layout setup
+def setup_proper_layout(self):
+    # Configure main frame
+    self.main_frame.columnconfigure(0, weight=1)
+    self.main_frame.rowconfigure(1, weight=1)  # Allow content area to expand
+
+    # Header row
+    ttk.Label(self.main_frame, text="AutoCAD Tool").grid(
+        row=0, column=0, sticky=(tk.W, tk.E), padx=10, pady=5
+    )
+
+    # Content area
+    self.content_frame = ttk.Frame(self.main_frame)
+    self.content_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+    self.content_frame.columnconfigure(0, weight=1)
+    self.content_frame.rowconfigure(0, weight=1)
+        ]]>
+      </code_fix>
+    </issue>
+
+    <issue category="threading_deadlocks">
+      <description>Threading issues causing deadlocks or race conditions</description>
+      <symptoms>
+        <symptom>Application hangs with no error messages</symptom>
+        <symptom>Inconsistent UI updates</symptom>
+        <symptom>COM objects becoming invalid</symptom>
+        <symptom>Memory leaks or resource exhaustion</symptom>
+      </symptoms>
+      <debugging_steps>
+        <step>Use threading.Lock for shared resources</step>
+        <step>Avoid accessing Tkinter widgets from background threads</step>
+        <step>Use daemon threads to prevent blocking on exit</step>
+        <step>Implement proper thread cleanup</step>
+        <step>Use queue.Queue for thread-safe communication</step>
+      </debugging_steps>
+      <code_fix>
+        <![CDATA[
+class ThreadSafeAutoCAD:
+    """Thread-safe AutoCAD operations with proper synchronization."""
+
+    def __init__(self):
+        self.com_lock = threading.Lock()
+        self.ui_queue = queue.Queue()
+        self.acad_app = None
+        self.is_connected = False
+
+    def start_ui_updater(self, root):
+        """Start thread that updates UI from background operations."""
+        def ui_updater():
+            while True:
+                try:
+                    update_func = self.ui_queue.get(timeout=1)
+                    root.after(0, update_func)
+                    self.ui_queue.task_done()
+                except queue.Empty:
+                    continue
+
+        updater_thread = threading.Thread(target=ui_updater, daemon=True)
+        updater_thread.start()
+
+    def execute_thread_safe(self, operation, *args, **kwargs):
+        """Execute AutoCAD operation in background thread."""
+        def background_operation():
+            try:
+                # Update UI: operation starting
+                self.ui_queue.put(lambda: self.status_var.set("Processing..."))
+
+                # Execute operation with COM lock
+                with self.com_lock:
+                    result = operation(*args, **kwargs)
+
+                # Update UI: operation complete
+                self.ui_queue.put(lambda: self.status_var.set("Complete"))
+
+                return result
+
+            except Exception as e:
+                # Update UI: operation failed
+                self.ui_queue.put(lambda: self.status_var.set(f"Error: {e}"))
+                raise
+
+        # Start background thread
+        thread = threading.Thread(target=background_operation, daemon=True)
+        thread.start()
+
+        return thread
+
+# Usage
+def safe_autocad_operation(self):
+    def autocad_task():
+        # COM operations here are thread-safe
+        if not self.autocad_manager.is_connected:
+            self.autocad_manager.connect_autocad()
+
+        # Perform AutoCAD operations
+        self.create_geometry()
+
+    self.autocad_manager.execute_thread_safe(autocad_task)
+        ]]>
+      </code_fix>
+    </issue>
+  </common_issues>
+
+  <debugging_tools>
+    <tool name="tkinter_inspector">
+      <description>Built-in Tkinter debugging tools</description>
+      <usage>
+        <![CDATA[
+# Enable Tkinter debugging
+root = tk.Tk()
+root.debug = True  # Shows debug information
+
+# Get widget information
+def inspect_widget(widget):
+    print(f"Widget class: {widget.winfo_class()}")
+    print(f"Widget geometry: {widget.winfo_geometry()}")
+    print(f"Widget size: {widget.winfo_width()}x{widget.winfo_height()}")
+    print(f"Widget position: {widget.winfo_x()}, {widget.winfo_y()}")
+    print(f"Widget manager: {widget.winfo_manager()}")
+
+    if widget.winfo_manager() == 'grid':
+        print(f"Grid info: {widget.grid_info()}")
+    elif widget.winfo_manager() == 'pack':
+        print(f"Pack info: {widget.pack_info()}")
+
+# Inspect all widgets in a frame
+def inspect_frame(frame, indent=0):
+    prefix = "  " * indent
+    print(f"{prefix}Frame: {frame}")
+    for child in frame.winfo_children():
+        print(f"{prefix}  Child: {child.winfo_class()}")
+        if hasattr(child, 'winfo_children') and child.winfo_children():
+            inspect_frame(child, indent + 1)
+        ]]>
+      </usage>
+    </tool>
+
+    <tool name="logging_setup">
+      <description>Comprehensive logging for Tkinter applications</description>
+      <usage>
+        <![CDATA[
+import logging
+import sys
+from datetime import datetime
+
+class TkinterLogger:
+    """Enhanced logging for Tkinter applications."""
+
+    def __init__(self, log_file="tkinter_debug.log"):
+        self.logger = logging.getLogger('TkinterApp')
+        self.logger.setLevel(logging.DEBUG)
+
+        # Create formatters
+        file_formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+        )
+        console_formatter = logging.Formatter(
+            '%(levelname)s - %(message)s'
+        )
+
+        # File handler
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(file_formatter)
+
+        # Console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(console_formatter)
+
+        # Add handlers
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+
+    def log_widget_event(self, widget, event_type, event_data=None):
+        """Log Tkinter widget events."""
+        message = f"Widget {widget.winfo_class()}: {event_type}"
+        if event_data:
+            message += f" - {event_data}"
+        self.logger.debug(message)
+
+    def log_autocad_operation(self, operation, parameters=None, result=None):
+        """Log AutoCAD operations."""
+        message = f"AutoCAD Operation: {operation}"
+        if parameters:
+            message += f" - Params: {parameters}"
+        if result:
+            message += f" - Result: {result}"
+        self.logger.info(message)
+
+    def log_error_with_traceback(self, error, context=""):
+        """Log errors with full traceback."""
+        self.logger.error(f"Error in {context}: {error}")
+        self.logger.error("Traceback:", exc_info=True)
+
+# Usage in Tkinter app
+logger = TkinterLogger()
+
+def on_button_click():
+    logger.log_widget_event(self.button, "clicked")
+    try:
+        logger.log_autocad_operation("create_line", {"start": (0,0), "end": (100,100)})
+        # Perform operation
+        result = create_line((0,0), (100,100))
+        logger.log_autocad_operation("create_line", result=result)
+    except Exception as e:
+        logger.log_error_with_traceback(e, "button_click")
+        ]]>
+      </usage>
+    </tool>
+
+    <tool name="performance_monitoring">
+      <description>Monitor application performance and identify bottlenecks</description>
+      <usage>
+        <![CDATA[
+import time
+import psutil
+import threading
+
+class PerformanceMonitor:
+    """Monitor application performance."""
+
+    def __init__(self, root):
+        self.root = root
+        self.monitoring = False
+        self.monitor_thread = None
+        self.performance_data = []
+
+    def start_monitoring(self):
+        """Start performance monitoring."""
+        self.monitoring = True
+
+        def monitor():
+            while self.monitoring:
+                data = {
+                    'timestamp': time.time(),
+                    'cpu_percent': psutil.cpu_percent(),
+                    'memory_percent': psutil.virtual_memory().percent,
+                    'memory_mb': psutil.Process().memory_info().rss / 1024 / 1024,
+                    'thread_count': threading.active_count()
+                }
+                self.performance_data.append(data)
+
+                # Update UI every second
+                self.root.after(1000, lambda: self.update_performance_display(data))
+
+                time.sleep(1)
+
+        self.monitor_thread = threading.Thread(target=monitor, daemon=True)
+        self.monitor_thread.start()
+
+    def stop_monitoring(self):
+        """Stop performance monitoring."""
+        self.monitoring = False
+        if self.monitor_thread:
+            self.monitor_thread.join(timeout=2)
+
+    def update_performance_display(self, data):
+        """Update performance display in UI."""
+        if hasattr(self, 'perf_label'):
+            self.perf_label.config(text=".1f"
+
+    def get_performance_report(self):
+        """Generate performance report."""
+        if not self.performance_data:
+            return "No performance data available"
+
+        report = "Performance Report:\n"
+        report += ".1f"        report += ".1f"        report += ".1f"        report += f"Average threads: {sum(d['thread_count'] for d in self.performance_data) / len(self.performance_data):.1f}\n"
+
+        return report
+
+# Usage
+monitor = PerformanceMonitor(root)
+monitor.start_monitoring()
+
+# Later...
+print(monitor.get_performance_report())
+monitor.stop_monitoring()
+        ]]>
+      </usage>
+    </tool>
+  </debugging_tools>
+
+  <testing_strategies>
+    <strategy name="unit_testing_tkinter">
+      <description>Testing strategies for Tkinter components</description>
+      <code_example>
+        <![CDATA[
+import unittest
+from unittest.mock import Mock, patch
+import tkinter as tk
+import sys
+import os
+
+class TestTkinterComponents(unittest.TestCase):
+    """Test Tkinter components without displaying windows."""
+
+    def setUp(self):
+        """Set up test environment."""
+        self.root = tk.Tk()
+        # Hide the root window during testing
+        self.root.withdraw()
+
+    def tearDown(self):
+        """Clean up after tests."""
+        if self.root:
+            self.root.destroy()
+
+    def test_entry_validation(self):
+        """Test entry widget validation."""
+        entry = ttk.Entry(self.root)
+        entry.insert(0, "test_value")
+
+        # Test getting value
+        self.assertEqual(entry.get(), "test_value")
+
+        # Test validation (implement your validation logic)
+        def validate_number(value):
+            try:
+                float(value)
+                return True
+            except ValueError:
+                return False
+
+        self.assertTrue(validate_number("123.45"))
+        self.assertFalse(validate_number("abc"))
+
+    @patch('win32com.client.Dispatch')
+    def test_autocad_mock_integration(self, mock_dispatch):
+        """Test AutoCAD integration with mocked COM objects."""
+        # Mock AutoCAD application
+        mock_app = Mock()
+        mock_doc = Mock()
+        mock_model_space = Mock()
+
+        mock_app.ActiveDocument = mock_doc
+        mock_doc.ModelSpace = mock_model_space
+        mock_dispatch.return_value = mock_app
+
+        # Test connection logic
+        from your_module import AutoCADManager
+        manager = AutoCADManager()
+
+        # Mock successful connection
+        mock_dispatch.side_effect = None
+        self.assertTrue(manager.connect())
+
+        # Verify COM initialization was called
+        mock_dispatch.assert_called_with("AutoCAD.Application")
+
+    def test_threading_safety(self):
+        """Test thread-safe operations."""
+        import queue
+        import threading
+
+        result_queue = queue.Queue()
+
+        def background_task():
+            # Simulate background work
+            time.sleep(0.1)
+            result_queue.put("completed")
+
+        thread = threading.Thread(target=background_task, daemon=True)
+        thread.start()
+
+        # Wait for result with timeout
+        try:
+            result = result_queue.get(timeout=1)
+            self.assertEqual(result, "completed")
+        except queue.Empty:
+            self.fail("Background task did not complete")
+
+    def test_ui_state_management(self):
+        """Test UI state management."""
+        # Test StringVar updates
+        status_var = tk.StringVar(value="initial")
+        self.assertEqual(status_var.get(), "initial")
+
+        status_var.set("updated")
+        self.assertEqual(status_var.get(), "updated")
+
+        # Test progress updates
+        progress_var = tk.DoubleVar(value=0.0)
+        progress_var.set(50.0)
+        self.assertEqual(progress_var.get(), 50.0)
+
+if __name__ == '__main__':
+    # Run tests without GUI
+    unittest.main()
+        ]]>
+      </code_example>
+    </strategy>
+  </testing_strategies>
+
+  <troubleshooting_checklist>
+    <checklist_item>Verify AutoCAD is running before COM operations</checklist_item>
+    <checklist_item>Check COM initialization in each thread using COM</checklist_item>
+    <checklist_item>Use threading for long-running AutoCAD operations</checklist_item>
+    <checklist_item>Validate all input parameters before AutoCAD calls</checklist_item>
+    <checklist_item>Implement proper error handling and user feedback</checklist_item>
+    <checklist_item>Test layouts at different window sizes</checklist_item>
+    <checklist_item>Use logging extensively for debugging</checklist_item>
+    <checklist_item>Monitor memory usage and resource leaks</checklist_item>
+    <checklist_item>Test with both Real and Mock AutoCAD interfaces</checklist_item>
+    <checklist_item>Verify thread safety of all shared resources</checklist_item>
+  </troubleshooting_checklist>
+</debugging_guide>

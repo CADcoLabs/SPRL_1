@@ -1,0 +1,161 @@
+<workflow_instructions>
+  <mode_overview>
+    Tkinter Expert mode provides comprehensive workflows for designing, implementing, debugging, and optimizing
+    Tkinter user interfaces, particularly those that integrate with AutoCAD via COM. This mode specializes
+    in creating responsive, thread-safe GUI applications that work seamlessly with AutoCAD automation.
+  </mode_overview>
+
+  <initialization_steps>
+    <step number="1">
+      <title>Analyze UI Requirements</title>
+      <description>
+        Understand the user interface requirements and AutoCAD integration needs
+      </description>
+      <actions>
+        <action>Review functional requirements for the Tkinter application</action>
+        <action>Identify AutoCAD COM operations that need UI triggers</action>
+        <action>Assess threading requirements for non-blocking operations</action>
+        <action>Determine layout complexity and widget requirements</action>
+      </actions>
+    </step>
+
+    <step number="2">
+      <title>Design UI Architecture</title>
+      <description>
+        Design the overall UI structure and component hierarchy
+      </description>
+      <actions>
+        <action>Plan widget hierarchy and layout management strategy</action>
+        <action>Design event handling and callback structures</action>
+        <action>Consider threading architecture for AutoCAD operations</action>
+        <action>Plan error handling and user feedback mechanisms</action>
+      </actions>
+    </step>
+
+    <step number="3">
+      <title>Set Up Development Environment</title>
+      <description>
+        Ensure proper Tkinter and AutoCAD COM setup
+      </description>
+      <actions>
+        <action>Verify Python 3.x and Tkinter availability</action>
+        <action>Configure pywin32 for AutoCAD COM integration</action>
+        <action>Set up threading support for non-blocking operations</action>
+        <action>Establish logging and debugging framework</action>
+      </actions>
+    </step>
+  </initialization_steps>
+
+  <main_workflow>
+    <phase name="ui_design">
+      <description>Create the user interface structure and layout</description>
+      <steps>
+        <step>Create main application window with proper geometry</step>
+        <step>Implement widget hierarchy using frames and containers</step>
+        <step>Configure layout management (grid/pack/place)</step>
+        <step>Add styling and theming configuration</step>
+        <step>Implement responsive design for window resizing</step>
+      </steps>
+    </phase>
+
+    <phase name="widget_implementation">
+      <description>Implement core widgets and user interaction elements</description>
+      <steps>
+        <step>Add input widgets (Entry, Combobox, Scale, etc.)</step>
+        <step>Implement buttons and command callbacks</step>
+        <step>Create display widgets (Label, Text, Canvas)</step>
+        <step>Add list and tree widgets for data presentation</step>
+        <step>Configure variable bindings and tracing</step>
+      </steps>
+    </phase>
+
+    <phase name="event_handling">
+      <description>Implement event handling and AutoCAD integration</description>
+      <steps>
+        <step>Bind widget events to callback functions</step>
+        <step>Implement threading for AutoCAD COM operations</step>
+        <step>Add progress indicators and status updates</step>
+        <step>Handle user input validation and error feedback</step>
+        <step>Implement undo/redo functionality where applicable</step>
+      </steps>
+    </phase>
+
+    <phase name="autocad_integration">
+      <description>Integrate AutoCAD COM operations with thread safety</description>
+      <steps>
+        <step>Initialize COM and AutoCAD connection management</step>
+        <step>Implement thread-safe AutoCAD command execution</step>
+        <step>Add real-time feedback from AutoCAD operations</step>
+        <step>Handle COM errors and connection failures</step>
+        <step>Implement progress monitoring and cancellation</step>
+      </steps>
+    </phase>
+
+    <phase name="error_handling">
+      <description>Implement comprehensive error handling and user feedback</description>
+      <steps>
+        <step>Add input validation for all user inputs</step>
+        <step>Implement COM error handling and recovery</step>
+        <step>Create user-friendly error messages and dialogs</step>
+        <step>Add logging for debugging and troubleshooting</step>
+        <step>Implement graceful degradation for failures</step>
+      </steps>
+    </phase>
+
+    <phase name="testing_optimization">
+      <description>Test and optimize the Tkinter application</description>
+      <steps>
+        <step>Test UI responsiveness and AutoCAD integration</step>
+        <step>Validate threading and COM operation safety</step>
+        <step>Optimize performance for complex AutoCAD interactions</step>
+        <step>Test error scenarios and recovery mechanisms</step>
+        <step>Document implementation patterns and usage</step>
+      </steps>
+    </phase>
+  </main_workflow>
+
+  <testing_validation>
+    <test_category name="ui_functionality">
+      <description>Test user interface functionality and responsiveness</description>
+      <tests>
+        <test>Widget creation and proper display</test>
+        <test>Layout management and resizing behavior</test>
+        <test>Event handling and callback execution</test>
+        <test>Input validation and error feedback</test>
+        <test>Progress indicators and status updates</test>
+      </tests>
+    </test_category>
+
+    <test_category name="autocad_integration">
+      <description>Test AutoCAD COM integration and thread safety</description>
+      <tests>
+        <test>COM initialization and connection management</test>
+        <test>Thread-safe AutoCAD command execution</test>
+        <test>Error handling for COM failures</test>
+        <test>Real-time feedback from AutoCAD operations</test>
+        <test>Memory management and resource cleanup</test>
+      </tests>
+    </test_category>
+
+    <test_category name="performance_testing">
+      <description>Validate performance and responsiveness</description>
+      <tests>
+        <test>UI responsiveness during AutoCAD operations</test>
+        <test>Memory usage and resource consumption</test>
+        <test>Threading efficiency and deadlock prevention</test>
+        <test>Scalability with large datasets</test>
+        <test>Platform compatibility (Windows 11)</test>
+      </tests>
+    </test_category>
+  </testing_validation>
+
+  <completion_criteria>
+    <criterion>UI layout is responsive and properly structured</criterion>
+    <criterion>All widgets function correctly with proper event handling</criterion>
+    <criterion>AutoCAD COM integration is thread-safe and reliable</criterion>
+    <criterion>Comprehensive error handling covers all failure scenarios</criterion>
+    <criterion>Application performs well with complex AutoCAD operations</criterion>
+    <criterion>Code is modular, maintainable, and well-documented</criterion>
+    <criterion>Platform-specific optimizations are implemented</criterion>
+  </completion_criteria>
+</workflow_instructions>

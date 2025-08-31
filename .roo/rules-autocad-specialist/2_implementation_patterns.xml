@@ -1,0 +1,369 @@
+<implementation_patterns>
+  <pattern_category name="connection_management">
+    <description>Best practices for AutoCAD COM connection management</description>
+
+    <pattern name="com_initialization">
+      <description>Proper COM initialization with error handling</description>
+      <code_example>
+        <![CDATA[
+import pythoncom
+import win32com.client
+from typing import Optional
+
+class AutoCADConnectionManager:
+    def __init__(self):
+        self.acad_app = None
+        self.acad_doc = None
+        self.model_space = None
+        self.connected = False
+
+    def connect(self) -> bool:
+        """Establish AutoCAD connection with proper COM initialization."""
+        try:
+            # Initialize COM for the current thread
+            pythoncom.CoInitialize()
+
+            # Connect to running AutoCAD instance or start new one
+            try:
+                self.acad_app = win32com.client.GetActiveObject("AutoCAD.Application")
+                print("Connected to running AutoCAD instance")
+            except:
+                self.acad_app = win32com.client.Dispatch("AutoCAD.Application")
+                self.acad_app.Visible = True
+                print("Started new AutoCAD instance")
+
+            # Get active document and model space
+            self.acad_doc = self.acad_app.ActiveDocument
+            self.model_space = self.acad_doc.ModelSpace
+            self.connected = True
+
+            return True
+
+        except Exception as e:
+            print(f"Failed to connect to AutoCAD: {e}")
+            return False
+
+    def disconnect(self):
+        """Clean up COM objects and disconnect."""
+        try:
+            if self.acad_app:
+                # Release COM objects in reverse order
+                self.model_space = None
+                self.acad_doc = None
+                self.acad_app = None
+
+            # Uninitialize COM
+            pythoncom.CoUninitialize()
+            self.connected = False
+
+        except Exception as e:
+            print(f"Error during disconnect: {e}")
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Always call pythoncom.CoInitialize() before COM operations</practice>
+        <practice>Use try/catch blocks for connection failures</practice>
+        <practice>Implement proper cleanup in disconnect method</practice>
+        <practice>Handle both existing and new AutoCAD instances</practice>
+      </best_practices>
+    </pattern>
+
+    <pattern name="retry_logic">
+      <description>Connection retry logic for robust AutoCAD integration</description>
+      <code_example>
+        <![CDATA[
+import time
+from typing import Callable, Any
+
+def connect_with_retry(max_retries: int = 3, delay: float = 2.0) -> bool:
+    """Connect to AutoCAD with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            if connection_manager.connect():
+                print(f"Successfully connected to AutoCAD on attempt {attempt + 1}")
+                return True
+        except Exception as e:
+            print(f"Connection attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                print(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+
+    print("All connection attempts failed")
+    return False
+
+def execute_with_retry(operation: Callable, max_retries: int = 3) -> Any:
+    """Execute AutoCAD operation with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            result = operation()
+            return result
+        except Exception as e:
+            print(f"Operation failed on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(1)  # Brief delay before retry
+
+    raise Exception("Operation failed after all retries")
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Use exponential backoff for retry delays</practice>
+        <practice>Log each retry attempt with specific error details</practice>
+        <practice>Implement maximum retry limits to prevent infinite loops</practice>
+        <practice>Handle different types of errors with appropriate retry strategies</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+
+  <pattern_category name="parameter_marshalling">
+    <description>Converting Python data types to AutoCAD COM-compatible formats</description>
+
+    <pattern name="variant_array_conversion">
+      <description>Convert Python coordinates to AutoCAD VARIANT arrays</description>
+      <code_example>
+        <![CDATA[
+import win32com.client
+import pythoncom
+
+def convert_to_variant_array(coordinates: tuple) -> Any:
+    """Convert Python coordinates to AutoCAD VARIANT array format.
+
+    Args:
+        coordinates: Tuple of (x, y, z) coordinates
+
+    Returns:
+        win32com.client.VARIANT array compatible with AutoCAD
+    """
+    try:
+        # Ensure we have 3D coordinates
+        coords = [
+            float(coordinates[0]),
+            float(coordinates[1]),
+            float(coordinates[2]) if len(coordinates) > 2 else 0.0
+        ]
+
+        # Create VARIANT array using the working format
+        variant_array = win32com.client.VARIANT(
+            pythoncom.VT_ARRAY | pythoncom.VT_R8,
+            coords
+        )
+
+        return variant_array
+
+    except Exception as e:
+        raise ValueError(f"Failed to convert coordinates {coordinates}: {e}")
+
+def create_circle(center: tuple, radius: float):
+    """Create a circle with proper parameter marshalling."""
+    try:
+        # Validate inputs
+        if radius <= 0:
+            raise ValueError(f"Invalid radius: {radius}")
+
+        # Convert center to VARIANT array
+        center_variant = convert_to_variant_array(center)
+
+        # Create the circle
+        circle = model_space.AddCircle(center_variant, radius)
+
+        return circle
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to create circle: {e}")
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Always validate input parameters before conversion</practice>
+        <practice>Use pythoncom.VT_R8 for double-precision coordinates</practice>
+        <practice>Handle both 2D and 3D coordinate inputs</practice>
+        <practice>Provide detailed error messages for conversion failures</practice>
+      </best_practices>
+    </pattern>
+
+    <pattern name="coordinate_transformation">
+      <description>Handle coordinate system transformations and unit conversions</description>
+      <code_example>
+        <![CDATA[
+def transform_coordinates(points: list, scale_factor: float = 1.0) -> list:
+    """Apply transformations to coordinate lists."""
+    transformed = []
+    for point in points:
+        # Apply scaling
+        scaled_point = (
+            point[0] * scale_factor,
+            point[1] * scale_factor,
+            point[2] * scale_factor if len(point) > 2 else 0.0
+        )
+        transformed.append(scaled_point)
+    return transformed
+
+def ensure_3d_coordinates(point: tuple) -> tuple:
+    """Ensure coordinates are 3D by adding Z=0 if missing."""
+    if len(point) == 2:
+        return (point[0], point[1], 0.0)
+    elif len(point) == 3:
+        return point
+    else:
+        raise ValueError(f"Invalid coordinate dimensions: {len(point)}")
+
+def create_polyline_from_points(points: list):
+    """Create polyline from list of points with proper coordinate handling."""
+    try:
+        # Ensure all points are 3D
+        points_3d = [ensure_3d_coordinates(pt) for pt in points]
+
+        # Flatten coordinates for AutoCAD polyline format: [x1, y1, z1, x2, y2, z2, ...]
+        flattened_coords = []
+        for point in points_3d:
+            flattened_coords.extend([point[0], point[1], point[2]])
+
+        # Convert to VARIANT array
+        coords_variant = win32com.client.VARIANT(
+            pythoncom.VT_ARRAY | pythoncom.VT_R8,
+            flattened_coords
+        )
+
+        # Create polyline
+        polyline = model_space.AddPolyline(coords_variant)
+
+        return polyline
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to create polyline: {e}")
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Validate coordinate dimensions before processing</practice>
+        <practice>Handle unit conversions explicitly</practice>
+        <practice>Document coordinate system assumptions</practice>
+        <practice>Provide transformation utilities for common operations</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+
+  <pattern_category name="geometry_creation">
+    <description>Patterns for creating various AutoCAD geometric entities</description>
+
+    <pattern name="helix_creation">
+      <description>Create helical geometry for handrails and spiral features</description>
+      <code_example>
+        <![CDATA[
+def create_helix(center: tuple, base_radius: float, top_radius: float,
+                height: float, turns: float) -> Any:
+    """Create helix with proper parameter handling."""
+    try:
+        # Validate parameters
+        if base_radius <= 0 or top_radius <= 0:
+            raise ValueError(f"Invalid radius: base={base_radius}, top={top_radius}")
+        if height <= 0:
+            raise ValueError(f"Invalid height: {height}")
+        if turns <= 0:
+            raise ValueError(f"Invalid turns: {turns}")
+
+        # Convert center to VARIANT array
+        center_variant = convert_to_variant_array(center)
+
+        # Create helix using SendCommand (most reliable method)
+        x, y, z = center
+        command = f"HELIX {x},{y},{z} {base_radius} {top_radius} {height}\\r"
+
+        acad_doc.SendCommand(command)
+
+        # Wait for command completion and find created helix
+        time.sleep(0.5)  # Allow time for command to execute
+
+        # Find the newly created helix
+        helix = None
+        for i in range(min(10, model_space.Count)):
+            entity = model_space.Item(model_space.Count - 1 - i)
+            if hasattr(entity, 'ObjectName') and entity.ObjectName == "AcDbHelix":
+                helix = entity
+                break
+
+        if helix:
+            # Set turns property if found
+            try:
+                helix.Turns = turns
+            except:
+                print("Warning: Could not set helix turns property")
+
+        return helix
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to create helix: {e}")
+
+def create_spiral_stair_helix(center: tuple, radius: float, height: float, turns: float):
+    """Create helix specifically for spiral staircase handrail."""
+    return create_helix(center, radius, radius, height, turns)
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Use SendCommand for complex geometry creation</practice>
+        <practice>Implement polling to find created entities</practice>
+        <practice>Handle property setting failures gracefully</practice>
+        <practice>Validate geometric parameters thoroughly</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+
+  <pattern_category name="error_handling">
+    <description>Comprehensive error handling patterns for AutoCAD integration</description>
+
+    <pattern name="com_error_handling">
+      <description>Handle COM-specific errors and exceptions</description>
+      <code_example>
+        <![CDATA[
+class AutoCADError(Exception):
+    """Base exception for AutoCAD-related errors."""
+    pass
+
+class AutoCADConnectionError(AutoCADError):
+    """Raised when connection to AutoCAD fails."""
+    pass
+
+class AutoCADGeometryError(AutoCADError):
+    """Raised when geometry creation fails."""
+    pass
+
+def handle_com_error(func):
+    """Decorator for COM operation error handling."""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            error_code = getattr(e, 'hresult', None)
+            error_msg = str(e)
+
+            # Handle specific COM error codes
+            if error_code == -2147352567:  # Parameter error
+                raise AutoCADGeometryError(f"Parameter marshalling error: {error_msg}")
+            elif "connection" in error_msg.lower():
+                raise AutoCADConnectionError(f"Connection error: {error_msg}")
+            else:
+                raise AutoCADError(f"AutoCAD operation failed: {error_msg}")
+
+    return wrapper
+
+@handle_com_error
+def create_circle_safe(center: tuple, radius: float):
+    """Create circle with comprehensive error handling."""
+    # Validate inputs
+    if not isinstance(center, (tuple, list)):
+        raise AutoCADGeometryError("Center must be a tuple or list")
+    if len(center) < 2:
+        raise AutoCADGeometryError("Center must have at least 2 coordinates")
+    if radius <= 0:
+        raise AutoCADGeometryError(f"Radius must be positive: {radius}")
+
+    # Create the circle
+    return create_circle(center, radius)
+        ]]>
+      </code_example>
+      <best_practices>
+        <practice>Use custom exception classes for different error types</practice>
+        <practice>Implement decorator patterns for consistent error handling</practice>
+        <practice>Handle specific COM error codes appropriately</practice>
+        <practice>Provide detailed error messages with context</practice>
+      </best_practices>
+    </pattern>
+  </pattern_category>
+</implementation_patterns>

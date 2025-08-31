@@ -1,0 +1,150 @@
+<workflow_instructions>
+  <mode_overview>
+    AutoCAD_Specialist mode provides comprehensive workflows for implementing AutoCAD automation,
+    debugging COM integration issues, and creating production-ready CAD solutions.
+    This mode specializes in translating AutoCAD research into working Python code.
+  </mode_overview>
+
+  <initialization_steps>
+    <step number="1">
+      <title>Analyze Requirements</title>
+      <description>
+        Understand the AutoCAD integration requirements and current implementation state
+      </description>
+      <actions>
+        <action>Review existing AutoCAD interface code and error patterns</action>
+        <action>Identify specific AutoCAD APIs and methods needed</action>
+        <action>Assess performance requirements and constraints</action>
+        <action>Check compatibility with AutoCAD 2025</action>
+      </actions>
+    </step>
+
+    <step number="2">
+      <title>Set Up Development Environment</title>
+      <description>
+        Ensure proper COM integration and testing setup
+      </description>
+      <actions>
+        <action>Verify pywin32 and pythoncom installation</action>
+        <action>Configure Mock mode for development testing</action>
+        <action>Set up proper COM initialization patterns</action>
+        <action>Establish error handling and logging frameworks</action>
+      </actions>
+    </step>
+
+    <step number="3">
+      <title>Plan Implementation Strategy</title>
+      <description>
+        Design the approach for AutoCAD integration
+      </description>
+      <actions>
+        <action>Choose appropriate AutoCAD API methods</action>
+        <action>Design parameter marshalling approach</action>
+        <action>Plan error handling and recovery mechanisms</action>
+        <action>Define testing strategy with Real/Mock modes</action>
+      </actions>
+    </step>
+  </initialization_steps>
+
+  <main_workflow>
+    <phase name="connection_management">
+      <description>Establish reliable AutoCAD connection and session management</description>
+      <steps>
+        <step>Implement proper COM initialization with pythoncom.CoInitialize()</step>
+        <step>Create connection manager with retry logic and error handling</step>
+        <step>Set up AutoCAD application and document references</step>
+        <step>Configure model space and active layer management</step>
+        <step>Establish cleanup procedures for COM objects</step>
+      </steps>
+    </phase>
+
+    <phase name="geometry_implementation">
+      <description>Implement geometry creation and manipulation methods</description>
+      <steps>
+        <step>Convert Python coordinates to AutoCAD VARIANT arrays</step>
+        <step>Implement basic geometry creation (lines, circles, arcs)</step>
+        <step>Add complex geometry support (polylines, splines, helixes)</step>
+        <step>Handle coordinate transformations and unit conversions</step>
+        <step>Implement geometry validation and error checking</step>
+      </steps>
+    </phase>
+
+    <phase name="entity_manipulation">
+      <description>Implement entity creation, modification, and management</description>
+      <steps>
+        <step>Create layer management and organization</step>
+        <step>Implement entity property manipulation</step>
+        <step>Add dimension and annotation creation</step>
+        <step>Handle entity selection and grouping</step>
+        <step>Implement entity cleanup and disposal</step>
+      </steps>
+    </phase>
+
+    <phase name="error_handling">
+      <description>Implement comprehensive error handling and debugging</description>
+      <steps>
+        <step>Handle COM-specific errors (-2147352567, etc.)</step>
+        <step>Implement connection failure recovery</step>
+        <step>Add parameter validation and type checking</step>
+        <step>Create detailed logging for troubleshooting</step>
+        <step>Provide fallback mechanisms for failed operations</step>
+      </steps>
+    </phase>
+
+    <phase name="performance_optimization">
+      <description>Optimize AutoCAD automation performance</description>
+      <steps>
+        <step>Minimize API calls through batching</step>
+        <step>Implement efficient parameter marshalling</step>
+        <step>Cache frequently used objects and references</step>
+        <step>Optimize memory usage and cleanup</step>
+        <step>Monitor and profile performance bottlenecks</step>
+      </steps>
+    </phase>
+  </main_workflow>
+
+  <testing_validation>
+    <test_category name="unit_testing">
+      <description>Test individual AutoCAD methods and functions</description>
+      <tests>
+        <test>Parameter marshalling and VARIANT array conversion</test>
+        <test>Basic geometry creation (circles, lines, arcs)</test>
+        <test>Complex geometry creation (helixes, splines)</test>
+        <test>Entity manipulation and property setting</test>
+        <test>Error handling and recovery mechanisms</test>
+      </tests>
+    </test_category>
+
+    <test_category name="integration_testing">
+      <description>Test AutoCAD integration with spiral stair components</description>
+      <tests>
+        <test>Tread geometry creation and positioning</test>
+        <test>Handrail helix generation and manipulation</test>
+        <test>Picket placement and IBC compliance</test>
+        <test>Layer management and organization</test>
+        <test>Performance with full stair assembly</test>
+      </tests>
+    </test_category>
+
+    <test_category name="mock_vs_real_testing">
+      <description>Validate consistency between Mock and Real AutoCAD modes</description>
+      <tests>
+        <test>Mock mode entity creation matches Real mode</test>
+        <test>Error handling consistency across modes</test>
+        <test>Parameter validation works in both modes</test>
+        <test>Performance characteristics comparison</test>
+        <test>Memory usage and cleanup verification</test>
+      </tests>
+    </test_category>
+  </testing_validation>
+
+  <completion_criteria>
+    <criterion>AutoCAD connection management is robust and reliable</criterion>
+    <criterion>All geometry creation methods work with proper parameter marshalling</criterion>
+    <criterion>Comprehensive error handling covers all failure scenarios</criterion>
+    <criterion>Performance meets project requirements (<30 seconds)</criterion>
+    <criterion>Code is modular, maintainable, and well-documented</criterion>
+    <criterion>Mock and Real modes produce consistent results</criterion>
+    <criterion>IBC compliance is maintained in all geometric calculations</criterion>
+  </completion_criteria>
+</workflow_instructions>

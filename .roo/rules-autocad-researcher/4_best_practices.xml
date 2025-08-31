@@ -1,0 +1,131 @@
+<best_practices>
+  <practice_category name="com_error_handling">
+    <description>Best practices for handling COM errors in AutoCAD automation</description>
+    <practices>
+      <practice>
+        <title>Always use try-except blocks</title>
+        <description>Wrap all COM calls in proper exception handling</description>
+        <code_example>
+try:
+    circle = acad.ModelSpace.AddCircle(center, radius)
+except pythoncom.com_error as e:
+    print(f"COM Error: {e}")
+    return None
+        </code_example>
+      </practice>
+      <practice>
+        <title>Check for valid objects before use</title>
+        <description>Verify AutoCAD objects exist before accessing properties</description>
+        <code_example>
+if acad and acad.ActiveDocument:
+    model_space = acad.ActiveDocument.ModelSpace
+else:
+    print("AutoCAD not available")
+    return None
+        </code_example>
+      </practice>
+    </practices>
+  </practice_category>
+
+  <practice_category name="parameter_marshalling">
+    <description>Best practices for converting Python data to COM VARIANT types</description>
+    <practices>
+      <practice>
+        <title>Use proper VARIANT arrays for coordinates</title>
+        <description>Convert Python lists to COM-compatible VARIANT arrays</description>
+        <code_example>
+import array
+import pythoncom
+
+def to_variant_point(point_list):
+    """Convert [x, y, z] to VARIANT for AutoCAD"""
+    return pythoncom.VT_ARRAY | pythoncom.VT_R8, array.array('d', point_list)
+
+center_variant = to_variant_point([0, 0, 0])
+        </code_example>
+      </practice>
+      <practice>
+        <title>Validate coordinate data before conversion</title>
+        <description>Ensure coordinate lists contain valid numeric values</description>
+        <code_example>
+def validate_coordinates(coords):
+    """Validate coordinate list contains 2 or 3 numeric values"""
+    if not isinstance(coords, (list, tuple)) or len(coords) not in [2, 3]:
+        raise ValueError("Coordinates must be 2D or 3D list/tuple")
+    if not all(isinstance(c, (int, float)) for c in coords):
+        raise ValueError("All coordinates must be numeric")
+    return True
+        </code_example>
+      </practice>
+    </practices>
+  </practice_category>
+
+  <practice_category name="performance_optimization">
+    <description>Best practices for optimizing AutoCAD automation performance</description>
+    <practices>
+      <practice>
+        <title>Batch operations when possible</title>
+        <description>Minimize individual API calls by batching operations</description>
+        <code_example>
+# Instead of multiple individual calls
+circles = []
+for center in centers:
+    circle = model_space.AddCircle(center, radius)
+    circles.append(circle)
+
+# Batch the operations when possible
+# (Note: AutoCAD doesn't always support true batching)
+        </code_example>
+      </practice>
+      <practice>
+        <title>Cache frequently used objects</title>
+        <description>Store references to frequently accessed objects</description>
+        <code_example>
+# Cache model space reference
+model_space = acad.ActiveDocument.ModelSpace
+
+# Reuse the cached reference
+for i in range(100):
+    circle = model_space.AddCircle(centers[i], radius)
+        </code_example>
+      </practice>
+    </practices>
+  </practice_category>
+
+  <practice_category name="resource_management">
+    <description>Best practices for managing COM resources and cleanup</description>
+    <practices>
+      <practice>
+        <title>Proper COM initialization and cleanup</title>
+        <description>Initialize and clean up COM properly</description>
+        <code_example>
+import pythoncom
+
+# Initialize COM
+pythoncom.CoInitialize()
+
+try:
+    # Use AutoCAD COM objects
+    acad = win32com.client.Dispatch("AutoCAD.Application")
+    # ... do work ...
+finally:
+    # Clean up COM
+    pythoncom.CoUninitialize()
+        </code_example>
+      </practice>
+      <practice>
+        <title>Avoid keeping COM objects in memory</title>
+        <description>Release COM object references when done</description>
+        <code_example>
+# Good: Release reference after use
+circle = model_space.AddCircle(center, radius)
+circle_id = circle.ObjectID
+del circle  # Release COM reference
+
+# Later, if needed, get fresh reference
+# circle = acad.ActiveDocument.ObjectIdToObject(circle_id)
+        </code_example>
+      </practice>
+    </practices>
+  </practice_category>
+</best_practices>

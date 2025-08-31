@@ -1,0 +1,445 @@
+<debugging_guide>
+  <overview>
+    Comprehensive guide for diagnosing and resolving AutoCAD COM integration issues.
+    Focuses on common error patterns, debugging techniques, and systematic troubleshooting.
+  </overview>
+
+  <error_categories>
+    <error_category name="connection_errors">
+      <description>Issues with AutoCAD connection establishment and maintenance</description>
+
+      <common_errors>
+        <error code="-2147221021">
+          <description>Class not registered - AutoCAD not installed or COM not registered</description>
+          <symptoms>
+            <symptom>win32com.client.Dispatch("AutoCAD.Application") fails</symptom>
+            <symptom>Error: "Class not registered"</symptom>
+            <symptom>GetActiveObject fails with same error</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Verify AutoCAD 2025 is installed and properly licensed</solution>
+            <solution>Run AutoCAD at least once to register COM components</solution>
+            <solution>Check if running as administrator (may be required)</solution>
+            <solution>Use repair installation if AutoCAD COM registration is corrupted</solution>
+          </solutions>
+        </error>
+
+        <error code="connection_timeout">
+          <description>AutoCAD takes too long to respond or start</description>
+          <symptoms>
+            <symptom>Connection attempts hang or timeout</symptom>
+            <symptom>AutoCAD window appears but doesn't respond to COM calls</symptom>
+            <symptom>Operations fail after successful connection</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Increase timeout values in connection manager</solution>
+            <solution>Ensure AutoCAD is not busy with other operations</solution>
+            <solution>Close unnecessary AutoCAD documents</solution>
+            <solution>Use GetActiveObject instead of creating new instance</solution>
+          </solutions>
+        </error>
+      </common_errors>
+    </error_category>
+
+    <error_category name="parameter_errors">
+      <description>Issues with parameter marshalling and data type conversion</description>
+
+      <common_errors>
+        <error code="-2147352567">
+          <description>Invalid number of parameters or invalid parameter type</description>
+          <symptoms>
+            <symptom>Most common COM error in AutoCAD automation</symptom>
+            <symptom>Usually caused by incorrect VARIANT array format</symptom>
+            <symptom>Geometry creation methods fail with this error</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Verify VARIANT array creation uses correct VT_ARRAY | VT_R8 format</solution>
+            <solution>Ensure coordinates are properly converted to float values</solution>
+            <solution>Check parameter order matches AutoCAD API specification</solution>
+            <solution>Validate all parameters are non-null before marshalling</solution>
+          </solutions>
+          <debug_code>
+            <![CDATA[
+# Debug parameter marshalling
+def debug_variant_array(coordinates):
+    """Debug VARIANT array creation and contents."""
+    try:
+        print(f"Input coordinates: {coordinates}")
+        print(f"Coordinate type: {type(coordinates)}")
+        print(f"Coordinate length: {len(coordinates)}")
+
+        # Test VARIANT array creation
+        variant = win32com.client.VARIANT(
+            pythoncom.VT_ARRAY | pythoncom.VT_R8,
+            coordinates
+        )
+
+        print(f"VARIANT created successfully: {variant}")
+        return variant
+
+    except Exception as e:
+        print(f"VARIANT creation failed: {e}")
+        raise
+            ]]>
+          </debug_code>
+        </error>
+
+        <error code="type_mismatch">
+          <description>Python data types don't match AutoCAD COM expectations</description>
+          <symptoms>
+            <symptom>Parameters accepted but geometry created incorrectly</symptom>
+            <symptom>Unexpected results from AutoCAD operations</symptom>
+            <symptom>Units or coordinate system issues</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Explicitly convert all numeric values to float</solution>
+            <solution>Ensure coordinate tuples/lists have correct dimensions</solution>
+            <solution>Verify unit system consistency (inches, mm, etc.)</solution>
+            <solution>Use ensure_3d_coordinates() for all point data</solution>
+          </solutions>
+        </error>
+      </common_errors>
+    </error_category>
+
+    <error_category name="geometry_errors">
+      <description>Issues with geometric entity creation and manipulation</description>
+
+      <common_errors>
+        <error code="invalid_geometry">
+          <description>Geometric parameters violate AutoCAD constraints</description>
+          <symptoms>
+            <symptom>Circle creation fails with radius ≤ 0</symptom>
+            <symptom>Arc creation fails with invalid angles</symptom>
+            <symptom>Zero-length lines or degenerate geometry</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Add comprehensive parameter validation before AutoCAD calls</solution>
+            <solution>Implement geometric constraint checking</solution>
+            <solution>Provide meaningful error messages for invalid parameters</solution>
+            <solution>Use default values for optional parameters</solution>
+          </solutions>
+          <validation_code>
+            <![CDATA[
+def validate_circle_parameters(center, radius):
+    """Validate circle creation parameters."""
+    if not isinstance(center, (tuple, list)):
+        raise ValueError("Center must be a tuple or list")
+
+    if len(center) < 2:
+        raise ValueError("Center must have at least X and Y coordinates")
+
+    if radius <= 0:
+        raise ValueError(f"Radius must be positive: {radius}")
+
+    # Check coordinate ranges (AutoCAD limits)
+    for i, coord in enumerate(center):
+        if not (-1e9 <= coord <= 1e9):
+            raise ValueError(f"Coordinate {i} out of valid range: {coord}")
+
+def validate_arc_parameters(center, radius, start_angle, end_angle):
+    """Validate arc creation parameters."""
+    validate_circle_parameters(center, radius)
+
+    if not isinstance(start_angle, (int, float)):
+        raise ValueError("Start angle must be numeric")
+
+    if not isinstance(end_angle, (int, float)):
+        raise ValueError("End angle must be numeric")
+
+    # Normalize angles to 0-2π range
+    start_angle = start_angle % (2 * 3.14159)
+    end_angle = end_angle % (2 * 3.14159)
+            ]]>
+          </validation_code>
+        </error>
+
+        <error code="entity_not_found">
+          <description>Created entity cannot be found or accessed</description>
+          <symptoms>
+            <symptom>SendCommand operations complete but entity not in model space</symptom>
+            <symptom>Entity creation succeeds but returned object is invalid</symptom>
+            <symptom>Property access fails on created entities</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Add delay after SendCommand operations</solution>
+            <solution>Implement polling to find newly created entities</solution>
+            <solution>Use direct API methods instead of SendCommand when possible</solution>
+            <solution>Verify entity creation in correct document/model space</solution>
+          </solutions>
+          <polling_code>
+            <![CDATA[
+def find_created_entity(entity_type="AcDbHelix", max_attempts=10):
+    """Poll model space to find newly created entity."""
+    import time
+
+    for attempt in range(max_attempts):
+        # Check recent entities in model space
+        count = model_space.Count
+        for i in range(min(5, count)):  # Check last 5 entities
+            try:
+                entity = model_space.Item(count - 1 - i)
+                if hasattr(entity, 'ObjectName') and entity.ObjectName == entity_type:
+                    print(f"Found {entity_type} on attempt {attempt + 1}")
+                    return entity
+            except:
+                continue
+
+        # Wait before next attempt
+        time.sleep(0.1)
+
+    print(f"Entity {entity_type} not found after {max_attempts} attempts")
+    return None
+            ]]>
+          </polling_code>
+        </error>
+      </common_errors>
+    </error_category>
+
+    <error_category name="performance_errors">
+      <description>Performance issues and optimization opportunities</description>
+
+      <common_errors>
+        <error code="memory_leaks">
+          <description>COM objects not properly released causing memory leaks</description>
+          <symptoms>
+            <symptom>Memory usage increases over time</symptom>
+            <symptom>AutoCAD becomes unresponsive after many operations</symptom>
+            <symptom>System performance degrades during long operations</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Explicitly set COM object references to None</solution>
+            <solution>Use proper cleanup in finally blocks</solution>
+            <solution>Implement object pooling for frequently used objects</solution>
+            <solution>Monitor COM object lifecycle</solution>
+          </solutions>
+          <cleanup_code>
+            <![CDATA[
+class AutoCADObjectManager:
+    """Manage COM object lifecycle to prevent memory leaks."""
+
+    def __init__(self):
+        self.objects = []
+
+    def create_object(self, creation_func, *args, **kwargs):
+        """Create object and track for cleanup."""
+        try:
+            obj = creation_func(*args, **kwargs)
+            self.objects.append(obj)
+            return obj
+        except Exception as e:
+            print(f"Object creation failed: {e}")
+            raise
+
+    def cleanup_all(self):
+        """Release all tracked COM objects."""
+        for obj in self.objects:
+            try:
+                obj = None  # Release COM reference
+            except:
+                pass
+        self.objects.clear()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup_all()
+            ]]>
+          </cleanup_code>
+        </error>
+
+        <error code="slow_operations">
+          <description>Operations taking longer than expected</description>
+          <symptoms>
+            <symptom>Batch operations exceed 30-second limit</symptom>
+            <symptom>Individual operations are slow</symptom>
+            <symptom>UI becomes unresponsive during operations</symptom>
+          </symptoms>
+          <solutions>
+            <solution>Batch multiple operations to reduce API call overhead</solution>
+            <solution>Use background processing for long operations</solution>
+            <solution>Cache frequently accessed objects and properties</solution>
+            <solution>Profile and optimize bottleneck operations</solution>
+          </solutions>
+        </error>
+      </common_errors>
+    </error_category>
+  </error_categories>
+
+  <debugging_tools>
+    <tool name="logging_setup">
+      <description>Comprehensive logging configuration for AutoCAD debugging</description>
+      <code_example>
+        <![CDATA[
+import logging
+import sys
+
+def setup_autocad_logging(log_level=logging.DEBUG):
+    """Set up comprehensive logging for AutoCAD operations."""
+
+    # Create logger
+    logger = logging.getLogger('autocad_debug')
+    logger.setLevel(log_level)
+
+    # Remove existing handlers
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(log_level)
+
+    # File handler
+    file_handler = logging.FileHandler('autocad_debug.log', mode='w')
+    file_handler.setLevel(log_level)
+
+    # Formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+    )
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    # Add handlers
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+    return logger
+
+# Usage
+debug_logger = setup_autocad_logging()
+
+def log_autocad_operation(operation_name, parameters, result=None, error=None):
+    """Log AutoCAD operation with parameters and results."""
+    if error:
+        debug_logger.error(f"{operation_name} failed: {error}")
+        debug_logger.error(f"Parameters: {parameters}")
+    else:
+        debug_logger.debug(f"{operation_name} succeeded")
+        debug_logger.debug(f"Parameters: {parameters}")
+        if result:
+            debug_logger.debug(f"Result: {result}")
+        ]]>
+      </code_example>
+    </tool>
+
+    <tool name="diagnostic_checks">
+      <description>Automated diagnostic checks for AutoCAD integration</description>
+      <code_example>
+        <![CDATA[
+def run_autocad_diagnostics():
+    """Run comprehensive diagnostic checks for AutoCAD integration."""
+
+    diagnostics = {
+        'com_available': False,
+        'autocad_installed': False,
+        'connection_possible': False,
+        'basic_operations': False,
+        'memory_usage': None
+    }
+
+    try:
+        # Check COM availability
+        import win32com.client
+        import pythoncom
+        diagnostics['com_available'] = True
+        print("✓ COM components available")
+
+        # Check AutoCAD installation
+        try:
+            acad_app = win32com.client.Dispatch("AutoCAD.Application")
+            diagnostics['autocad_installed'] = True
+            print("✓ AutoCAD installation detected")
+
+            # Test basic connection
+            doc = acad_app.ActiveDocument
+            model_space = doc.ModelSpace
+            diagnostics['connection_possible'] = True
+            print("✓ Basic connection successful")
+
+            # Test basic operations
+            center = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, [0, 0, 0])
+            circle = model_space.AddCircle(center, 1.0)
+            diagnostics['basic_operations'] = True
+            print("✓ Basic geometry operations working")
+
+            # Clean up test object
+            circle.Delete()
+
+        except Exception as e:
+            print(f"✗ AutoCAD test failed: {e}")
+
+    except ImportError as e:
+        print(f"✗ COM import failed: {e}")
+
+    return diagnostics
+
+# Usage
+if __name__ == "__main__":
+    results = run_autocad_diagnostics()
+    print("\nDiagnostic Results:")
+    for check, result in results.items():
+        status = "PASS" if result else "FAIL"
+        print(f"  {check}: {status}")
+        ]]>
+      </code_example>
+    </tool>
+  </debugging_tools>
+
+  <troubleshooting_workflow>
+    <step number="1">
+      <title>Reproduce the Issue</title>
+      <description>Create a minimal test case that reproduces the problem</description>
+      <actions>
+        <action>Isolate the failing operation</action>
+        <action>Create minimal code example</action>
+        <action>Test with both Mock and Real modes</action>
+        <action>Document exact error messages and conditions</action>
+      </actions>
+    </step>
+
+    <step number="2">
+      <title>Gather Diagnostic Information</title>
+      <description>Collect comprehensive debugging information</description>
+      <actions>
+        <action>Enable detailed logging</action>
+        <action>Run diagnostic checks</action>
+        <action>Monitor system resources</action>
+        <action>Capture AutoCAD state information</action>
+      </actions>
+    </step>
+
+    <step number="3">
+      <title>Analyze Error Patterns</title>
+      <description>Identify the root cause using systematic analysis</description>
+      <actions>
+        <action>Check error codes against known issues</action>
+        <action>Verify parameter marshalling</action>
+        <action>Test with simplified parameters</action>
+        <action>Compare with working examples</action>
+      </actions>
+    </step>
+
+    <step number="4">
+      <title>Implement and Test Fix</title>
+      <description>Apply the solution and verify it works</description>
+      <actions>
+        <action>Implement the identified fix</action>
+        <action>Test with original failing case</action>
+        <action>Test edge cases and error conditions</action>
+        <action>Verify performance impact</action>
+      </actions>
+    </step>
+
+    <step number="5">
+      <title>Document and Prevent</title>
+      <description>Document the solution and prevent future occurrences</description>
+      <actions>
+        <action>Update error handling code</action>
+        <action>Add regression tests</action>
+        <action>Document the issue and solution</action>
+        <action>Improve parameter validation</action>
+      </actions>
+    </step>
+  </troubleshooting_workflow>
+</debugging_guide>

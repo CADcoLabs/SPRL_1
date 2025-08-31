@@ -1,0 +1,465 @@
+<performance_optimization>
+  <overview>
+    Comprehensive guide for optimizing AutoCAD automation performance.
+    Focus on techniques to meet the 30-second requirement and improve overall efficiency.
+  </overview>
+
+  <optimization_principles>
+    <principle name="batch_operations">
+      <description>Group multiple operations to reduce API call overhead</description>
+      <benefits>
+        <benefit>Reduces COM round-trip overhead</benefit>
+        <benefit>Minimizes AutoCAD UI updates</benefit>
+        <benefit>Improves overall throughput</benefit>
+      </benefits>
+      <implementation>
+        <![CDATA[
+class BatchGeometryCreator:
+    """Batch geometry creation for improved performance."""
+
+    def __init__(self, model_space):
+        self.model_space = model_space
+        self.batch_size = 50
+        self.operations = []
+
+    def add_circle_batch(self, circles_data):
+        """Batch create multiple circles."""
+        for center, radius in circles_data:
+            self.operations.append(('circle', center, radius))
+
+            # Execute batch when limit reached
+            if len(self.operations) >= self.batch_size:
+                self.execute_batch()
+
+    def execute_batch(self):
+        """Execute all batched operations."""
+        if not self.operations:
+            return
+
+        try:
+            # Group by operation type for efficiency
+            circles = [(center, radius) for op, center, radius in self.operations if op == 'circle']
+
+            # Execute circles in batch
+            for center, radius in circles:
+                center_variant = convert_to_variant_array(center)
+                self.model_space.AddCircle(center_variant, radius)
+
+            self.operations.clear()
+
+        except Exception as e:
+            print(f"Batch execution failed: {e}")
+            # Fallback to individual execution
+            self.execute_individual()
+
+    def execute_individual(self):
+        """Fallback to individual execution."""
+        for operation in self.operations:
+            try:
+                op_type, *params = operation
+                if op_type == 'circle':
+                    self.create_circle_individual(*params)
+            except Exception as e:
+                print(f"Individual operation failed: {e}")
+
+        self.operations.clear()
+        ]]>
+      </implementation>
+    </principle>
+
+    <principle name="object_caching">
+      <description>Cache frequently used objects and references</description>
+      <benefits>
+        <benefit>Reduces object lookup overhead</benefit>
+        <benefit>Minimizes COM reference resolution</benefit>
+        <benefit>Improves repeated operations</benefit>
+      </benefits>
+      <implementation>
+        <![CDATA[
+class AutoCADObjectCache:
+    """Cache frequently used AutoCAD objects and references."""
+
+    def __init__(self):
+        self._model_space = None
+        self._active_document = None
+        self._layers = {}
+        self._last_access = {}
+
+    @property
+    def model_space(self):
+        """Get cached model space reference."""
+        if self._model_space is None:
+            self._model_space = self.active_document.ModelSpace
+        return self._model_space
+
+    @property
+    def active_document(self):
+        """Get cached active document reference."""
+        if self._active_document is None:
+            self._active_document = acad_app.ActiveDocument
+        return self._active_document
+
+    def get_layer(self, layer_name):
+        """Get cached layer reference."""
+        if layer_name not in self._layers:
+            # Try to get existing layer
+            try:
+                self._layers[layer_name] = self.active_document.Layers.Item(layer_name)
+            except:
+                # Create new layer if it doesn't exist
+                self._layers[layer_name] = self.active_document.Layers.Add(layer_name)
+
+        return self._layers[layer_name]
+
+    def invalidate_cache(self):
+        """Clear cache when document changes."""
+        self._model_space = None
+        self._active_document = None
+        self._layers.clear()
+        self._last_access.clear()
+
+# Global cache instance
+object_cache = AutoCADObjectCache()
+        ]]>
+      </implementation>
+    </principle>
+
+    <principle name="lazy_evaluation">
+      <description>Defer expensive operations until absolutely necessary</description>
+      <benefits>
+        <benefit>Reduces unnecessary computations</benefit>
+        <benefit>Improves startup time</benefit>
+        <benefit>Allows early validation</benefit>
+      </benefits>
+      <implementation>
+        <![CDATA[
+class LazyGeometryProcessor:
+    """Process geometry with lazy evaluation."""
+
+    def __init__(self, geometry_data):
+        self._geometry_data = geometry_data
+        self._processed_geometry = None
+        self._validation_result = None
+
+    @property
+    def processed_geometry(self):
+        """Get processed geometry, computing only when needed."""
+        if self._processed_geometry is None:
+            self._processed_geometry = self._process_geometry()
+        return self._processed_geometry
+
+    @property
+    def is_valid(self):
+        """Check if geometry is valid, computing only when needed."""
+        if self._validation_result is None:
+            self._validation_result = self._validate_geometry()
+        return self._validation_result
+
+    def _process_geometry(self):
+        """Expensive geometry processing operation."""
+        # Complex coordinate transformations, validation, etc.
+        processed = []
+        for item in self._geometry_data:
+            # Expensive processing here
+            processed_item = self._transform_coordinates(item)
+            processed.append(processed_item)
+        return processed
+
+    def _validate_geometry(self):
+        """Expensive validation operation."""
+        # Comprehensive validation logic
+        for item in self._geometry_data:
+            if not self._is_valid_item(item):
+                return False
+        return True
+        ]]>
+      </implementation>
+    </principle>
+
+    <principle name="memory_management">
+      <description>Efficient memory usage and cleanup</description>
+      <benefits>
+        <benefit>Prevents memory leaks</benefit>
+        <benefit>Maintains system performance</benefit>
+        <benefit>Allows longer operation runs</benefit>
+      </benefits>
+      <implementation>
+        <![CDATA[
+import gc
+import psutil
+import os
+
+class MemoryManager:
+    """Manage memory usage during AutoCAD operations."""
+
+    def __init__(self, memory_threshold_mb=500):
+        self.memory_threshold_mb = memory_threshold_mb
+        self.initial_memory = self.get_memory_usage()
+
+    def get_memory_usage(self):
+        """Get current memory usage in MB."""
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss / 1024 / 1024
+
+    def should_cleanup(self):
+        """Check if memory cleanup is needed."""
+        current_memory = self.get_memory_usage()
+        memory_increase = current_memory - self.initial_memory
+        return memory_increase > self.memory_threshold_mb
+
+    def cleanup_memory(self):
+        """Perform memory cleanup operations."""
+        # Force garbage collection
+        gc.collect()
+
+        # Clear any cached objects that can be recreated
+        if hasattr(object_cache, 'invalidate_cache'):
+            object_cache.invalidate_cache()
+
+        # Log memory cleanup
+        current_memory = self.get_memory_usage()
+        print(f"Memory cleanup completed. Current usage: {current_memory:.1f} MB")
+
+    def monitor_operation(self, operation_func, *args, **kwargs):
+        """Monitor memory usage during operation."""
+        start_memory = self.get_memory_usage()
+
+        try:
+            result = operation_func(*args, **kwargs)
+            return result
+        finally:
+            end_memory = self.get_memory_usage()
+            memory_delta = end_memory - start_memory
+
+            if memory_delta > 50:  # Log significant memory increases
+                print(f"Operation memory delta: +{memory_delta:.1f} MB")
+
+            if self.should_cleanup():
+                self.cleanup_memory()
+
+# Usage
+memory_manager = MemoryManager()
+
+def monitored_create_geometry(geometry_data):
+    """Create geometry with memory monitoring."""
+    return memory_manager.monitor_operation(
+        create_geometry_batch,
+        geometry_data
+    )
+        ]]>
+      </implementation>
+    </principle>
+  </optimization_principles>
+
+  <performance_monitoring>
+    <monitoring_tool name="operation_profiler">
+      <description>Profile AutoCAD operations to identify bottlenecks</description>
+      <implementation>
+        <![CDATA[
+import time
+import functools
+from collections import defaultdict
+
+class AutoCADProfiler:
+    """Profile AutoCAD operations for performance analysis."""
+
+    def __init__(self):
+        self.operation_times = defaultdict(list)
+        self.operation_counts = defaultdict(int)
+
+    def profile_operation(self, operation_name):
+        """Decorator to profile operation execution time."""
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                start_time = time.perf_counter()
+                try:
+                    result = func(*args, **kwargs)
+                    return result
+                finally:
+                    end_time = time.perf_counter()
+                    execution_time = end_time - start_time
+
+                    self.operation_times[operation_name].append(execution_time)
+                    self.operation_counts[operation_name] += 1
+
+                    if execution_time > 1.0:  # Log slow operations
+                        print(f"SLOW OPERATION: {operation_name} took {execution_time:.3f}s")
+            return wrapper
+        return decorator
+
+    def get_performance_report(self):
+        """Generate performance report."""
+        report = []
+        report.append("AutoCAD Performance Report")
+        report.append("=" * 40)
+
+        for operation, times in self.operation_times.items():
+            count = self.operation_counts[operation]
+            avg_time = sum(times) / len(times)
+            max_time = max(times)
+            total_time = sum(times)
+
+            report.append(f"\nOperation: {operation}")
+            report.append(f"  Count: {count}")
+            report.append(f"  Average: {avg_time:.3f}s")
+            report.append(f"  Maximum: {max_time:.3f}s")
+            report.append(f"  Total: {total_time:.3f}s")
+
+        return "\n".join(report)
+
+# Global profiler instance
+profiler = AutoCADProfiler()
+
+@profiler.profile_operation("create_circle")
+def create_circle_profiled(center, radius):
+    """Profile circle creation."""
+    return create_circle(center, radius)
+
+@profiler.profile_operation("create_line")
+def create_line_profiled(start, end):
+    """Profile line creation."""
+    return create_line(start, end)
+        ]]>
+      </implementation>
+    </monitoring_tool>
+
+    <monitoring_tool name="progress_tracking">
+      <description>Track progress and estimate completion time</description>
+      <implementation>
+        <![CDATA[
+class ProgressTracker:
+    """Track progress of long-running AutoCAD operations."""
+
+    def __init__(self, total_operations, description="Processing"):
+        self.total_operations = total_operations
+        self.completed_operations = 0
+        self.description = description
+        self.start_time = time.time()
+
+    def update_progress(self, increment=1):
+        """Update progress and display status."""
+        self.completed_operations += increment
+        progress_percent = (self.completed_operations / self.total_operations) * 100
+
+        # Calculate estimated time remaining
+        elapsed_time = time.time() - self.start_time
+        if self.completed_operations > 0:
+            avg_time_per_op = elapsed_time / self.completed_operations
+            remaining_ops = self.total_operations - self.completed_operations
+            estimated_remaining = remaining_ops * avg_time_per_op
+
+            print(f"{self.description}: {self.completed_operations}/{self.total_operations} "
+                  f"({progress_percent:.1f}%) - Est. remaining: {estimated_remaining:.1f}s")
+        else:
+            print(f"{self.description}: {self.completed_operations}/{self.total_operations} "
+                  f"({progress_percent:.1f}%)")
+
+    def is_complete(self):
+        """Check if all operations are complete."""
+        return self.completed_operations >= self.total_operations
+
+    def get_completion_time(self):
+        """Get total completion time."""
+        return time.time() - self.start_time
+
+# Usage example
+def create_stair_components_batch(component_data):
+    """Create stair components with progress tracking."""
+    tracker = ProgressTracker(len(component_data), "Creating stair components")
+
+    for i, (component_type, params) in enumerate(component_data):
+        if component_type == "tread":
+            create_tread(*params)
+        elif component_type == "picket":
+            create_picket(*params)
+        elif component_type == "handrail":
+            create_handrail(*params)
+
+        tracker.update_progress()
+
+        # Periodic memory cleanup
+        if i % 25 == 0:
+            memory_manager.cleanup_memory()
+
+    print(f"Completed in {tracker.get_completion_time():.2f} seconds")
+    return tracker.is_complete()
+        ]]>
+      </implementation>
+    </monitoring_tool>
+  </performance_monitoring>
+
+  <optimization_strategies>
+    <strategy name="startup_optimization">
+      <description>Optimize AutoCAD startup and initialization</description>
+      <techniques>
+        <technique>Connect to existing AutoCAD instance instead of starting new one</technique>
+        <technique>Delay heavy initialization until first operation</technique>
+        <technique>Cache connection and object references</technique>
+        <technique>Use background initialization when possible</technique>
+      </techniques>
+    </strategy>
+
+    <strategy name="operation_batching">
+      <description>Batch similar operations for efficiency</description>
+      <techniques>
+        <technique>Group geometry by type (circles, lines, etc.)</technique>
+        <technique>Execute operations in optimal order</technique>
+        <technique>Use bulk operations where available</technique>
+        <technique>Minimize document updates between operations</technique>
+      </techniques>
+    </strategy>
+
+    <strategy name="resource_management">
+      <description>Manage system resources efficiently</description>
+      <techniques>
+        <technique>Monitor memory usage and trigger cleanup</technique>
+        <technique>Limit concurrent operations</technique>
+        <technique>Use object pooling for reusable objects</technique>
+        <technique>Implement proper COM object disposal</technique>
+      </techniques>
+    </strategy>
+
+    <strategy name="algorithmic_optimization">
+      <description>Optimize algorithms and data structures</description>
+      <techniques>
+        <technique>Use efficient coordinate transformations</technique>
+        <technique>Pre-calculate complex geometry</technique>
+        <technique>Cache computation results</technique>
+        <technique>Use spatial indexing for large datasets</technique>
+      </techniques>
+    </strategy>
+  </optimization_strategies>
+
+  <performance_targets>
+    <target metric="connection_time">
+      <description>AutoCAD connection establishment</description>
+      <goal>Under 5 seconds</goal>
+      <measurement>Time from connection attempt to ready state</measurement>
+    </target>
+
+    <target metric="geometry_creation">
+      <description>Individual geometry entity creation</description>
+      <goal>Under 0.1 seconds per entity</goal>
+      <measurement>Time to create and validate single entity</measurement>
+    </target>
+
+    <target metric="batch_operations">
+      <description>Large batch geometry creation</description>
+      <goal>Under 30 seconds for full stair</goal>
+      <measurement>Total time for complete stair assembly</measurement>
+    </target>
+
+    <target metric="memory_usage">
+      <description>Memory consumption during operations</description>
+      <goal>Under 500MB increase</goal>
+      <measurement>Peak memory usage above baseline</measurement>
+    </target>
+
+    <target metric="error_rate">
+      <description>Operation failure rate</description>
+      <goal>Under 1% failure rate</goal>
+      <measurement>Percentage of failed operations</measurement>
+    </target>
+  </performance_targets>
+</performance_optimization>

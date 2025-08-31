@@ -1,0 +1,177 @@
+<examples>
+  <example_category name="basic_autocad_connection">
+    <description>Basic examples for connecting to AutoCAD and performing simple operations</description>
+    <examples>
+      <example>
+        <title>Simple AutoCAD Connection</title>
+        <description>Basic connection to AutoCAD and document access</description>
+        <code>
+import pythoncom
+import win32com.client
+
+def connect_to_autocad():
+    """Connect to running AutoCAD instance"""
+    try:
+        pythoncom.CoInitialize()
+        acad = win32com.client.Dispatch("AutoCAD.Application")
+        print(f"Connected to AutoCAD {acad.Version}")
+        return acad
+    except Exception as e:
+        print(f"Failed to connect: {e}")
+        return None
+
+def get_active_document(acad):
+    """Get the active document"""
+    try:
+        doc = acad.ActiveDocument
+        print(f"Active document: {doc.Name}")
+        return doc
+    except Exception as e:
+        print(f"Failed to get document: {e}")
+        return None
+        </code>
+      </example>
+    </examples>
+  </example_category>
+
+  <example_category name="geometry_creation">
+    <description>Examples for creating various geometric entities in AutoCAD</description>
+    <examples>
+      <example>
+        <title>Create Circle</title>
+        <description>Create a circle in model space</description>
+        <code>
+import array
+import pythoncom
+
+def create_circle(model_space, center, radius):
+    """Create a circle in AutoCAD model space"""
+    try:
+        # Convert center point to VARIANT array
+        center_variant = pythoncom.VT_ARRAY | pythoncom.VT_R8, array.array('d', center)
+
+        # Create the circle
+        circle = model_space.AddCircle(center_variant, radius)
+
+        print(f"Created circle with radius {radius} at {center}")
+        return circle
+    except Exception as e:
+        print(f"Failed to create circle: {e}")
+        return None
+
+# Usage
+acad = connect_to_autocad()
+if acad:
+    doc = acad.ActiveDocument
+    model_space = doc.ModelSpace
+
+    # Create circle at origin with radius 5
+    circle = create_circle(model_space, [0, 0, 0], 5.0)
+        </code>
+      </example>
+
+      <example>
+        <title>Create Line</title>
+        <description>Create a line between two points</description>
+        <code>
+def create_line(model_space, start_point, end_point):
+    """Create a line in AutoCAD model space"""
+    try:
+        # Convert points to VARIANT arrays
+        start_variant = pythoncom.VT_ARRAY | pythoncom.VT_R8, array.array('d', start_point)
+        end_variant = pythoncom.VT_ARRAY | pythoncom.VT_R8, array.array('d', end_point)
+
+        # Create the line
+        line = model_space.AddLine(start_variant, end_variant)
+
+        print(f"Created line from {start_point} to {end_point}")
+        return line
+    except Exception as e:
+        print(f"Failed to create line: {e}")
+        return None
+
+# Usage
+line = create_line(model_space, [0, 0, 0], [10, 10, 0])
+        </code>
+      </example>
+    </examples>
+  </example_category>
+
+  <example_category name="error_handling">
+    <description>Examples of proper error handling for AutoCAD COM operations</description>
+    <examples>
+      <example>
+        <title>Comprehensive Error Handling</title>
+        <description>Handle various COM errors gracefully</description>
+        <code>
+import pythoncom
+from win32com.client import constants
+
+def safe_autocad_operation(operation_func, *args, **kwargs):
+    """Execute AutoCAD operation with comprehensive error handling"""
+    try:
+        result = operation_func(*args, **kwargs)
+        return True, result
+    except pythoncom.com_error as e:
+        error_code = e.hresult
+        if error_code == -2147352567:
+            return False, "Invalid parameter or method call"
+        elif error_code == -2147467259:
+            return False, "AutoCAD application not available"
+        else:
+            return False, f"COM Error {error_code}: {e}"
+    except AttributeError as e:
+        return False, f"Invalid object attribute: {e}"
+    except Exception as e:
+        return False, f"Unexpected error: {e}"
+
+def create_entity_safely(model_space, entity_type, *params):
+    """Create entity with error handling"""
+    success, result = safe_autocad_operation(
+        getattr(model_space, f'Add{entity_type}'), *params
+    )
+
+    if success:
+        print(f"Successfully created {entity_type}")
+        return result
+    else:
+        print(f"Failed to create {entity_type}: {result}")
+        return None
+        </code>
+      </example>
+    </examples>
+  </example_category>
+
+  <example_category name="advanced_patterns">
+    <description>Advanced patterns for complex AutoCAD automation</description>
+    <examples>
+      <example>
+        <title>Batch Entity Creation</title>
+        <description>Create multiple entities efficiently</description>
+        <code>
+def create_multiple_circles(model_space, circle_data):
+    """Create multiple circles from list of center/radius pairs"""
+    circles = []
+    for center, radius in circle_data:
+        circle = create_circle(model_space, center, radius)
+        if circle:
+            circles.append(circle)
+        else:
+            print(f"Failed to create circle at {center}")
+
+    print(f"Created {len(circles)} out of {len(circle_data)} circles")
+    return circles
+
+# Usage
+circle_specs = [
+    ([0, 0, 0], 5.0),
+    ([10, 0, 0], 3.0),
+    ([0, 10, 0], 4.0)
+]
+
+circles = create_multiple_circles(model_space, circle_specs)
+        </code>
+      </example>
+    </examples>
+  </example_category>
+</examples>
